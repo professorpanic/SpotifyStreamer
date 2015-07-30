@@ -38,11 +38,12 @@ public class MediaPlayerFragment extends DialogFragment implements MediaControll
     private MediaPlayer mPlayer = new MediaPlayer();
     private ArrayList<Track> topTracks;
     private Uri trackUri;
-    ImageView trackImage;
+
+    ImageView trackImageView;
     TextView artistNameTextView;
-    TextView trackName;
+    TextView trackNameTextView;
     View rootView;
-    TextView albumName;
+    TextView albumNameTextView;
     ImageButton playButton;
     ImageButton skipNextButton;
     ImageButton skipPreviousButton;
@@ -53,11 +54,13 @@ public class MediaPlayerFragment extends DialogFragment implements MediaControll
     private static final String TRACK_LIST = "Artist Top Ten Tracks";
     private MediaController mController;
     private Handler mHandler = new Handler();
-    
+    SeekBar seekBar;
 
     public MediaPlayer getMediaPlayer() {
         return this.mPlayer;
     }
+
+    public ArrayList<Track> getTopTracks() {return this.topTracks;}
 
 
 
@@ -65,13 +68,11 @@ public class MediaPlayerFragment extends DialogFragment implements MediaControll
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
-        //Intent intent = getActivity().getIntent();
         Bundle args = this.getArguments();
         topTracks = (ArrayList<Track>)args.get(TRACK_LIST);
-        chosenTrack = args.getInt(CHOSEN_TRACK);
         artistName = args.getString(PASSED_ARTIST_NAME);
-        Log.i(TAG, artistName);
-        //mController = new MediaController(getActivity());
+
+        chosenTrack = args.getInt(CHOSEN_TRACK);
         mController = new MediaController(getActivity()) {
             @Override
             public void hide() {}      // This bit is to keep the controller from hiding after 3 seconds
@@ -94,12 +95,46 @@ public class MediaPlayerFragment extends DialogFragment implements MediaControll
 
 
 
+
+
+    }
+
+    public void updatePlayer(int trackNumber)
+    {
+
+
+
+        if (!Utility.isNetworkAvailable(getActivity().getApplicationContext()))
+        {
+
+            Toast.makeText(getActivity().getApplicationContext(), getString(R.string.no_network_error), Toast.LENGTH_SHORT).show();
+            trackImageView.setImageResource(R.drawable.ic_music_note);
+        }
+        else
+        {
+            albumNameTextView.setText(topTracks.get(trackNumber).album.name);
+            artistNameTextView.setText(artistName);
+            trackNameTextView.setText(topTracks.get(trackNumber).name);
+            Picasso.with(getActivity()).load(topTracks.get(trackNumber).album.images.get(0).url).into(trackImageView);
+
+        }
+
+        Log.i(TAG, artistName);
         try {
 
+            if (mPlayer.isPlaying())
+            {
+                mPlayer.stop();
+                mPlayer.reset();
+            }
+
             trackUri = Uri.parse(topTracks.get(chosenTrack).preview_url);
+            Log.e(TAG, trackUri.toString());
+
             mPlayer.setDataSource(getActivity(), trackUri);
             mPlayer.prepare();
             mPlayer.start();
+            seekBar.setMax(mPlayer.getDuration());
         } catch (IOException e) {
             Log.e(TAG, "Could not open file for playback. trackUri is " + trackUri.toString(), e);
         }
@@ -109,32 +144,68 @@ public class MediaPlayerFragment extends DialogFragment implements MediaControll
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View rootView = inflater.inflate(R.layout.media_player_layout,container, false);
+        View rootView = inflater.inflate(R.layout.media_player_layout, container, false);
 
-        trackImage = (ImageView) rootView.findViewById(R.id.mediaplayer_image);
+
+//        try {
+//
+//            trackUri = Uri.parse(topTracks.get(chosenTrack).preview_url);
+//            mPlayer.setDataSource(getActivity(), trackUri);
+//            mPlayer.prepare();
+//            mPlayer.start();
+//        } catch (IOException e) {
+//            Log.e(TAG, "Could not open file for playback. trackUri is " + trackUri.toString(), e);
+//        }
+
+        trackImageView = (ImageView) rootView.findViewById(R.id.mediaplayer_image);
 
         artistNameTextView = (TextView) rootView.findViewById(R.id.player_artist_name);
         artistNameTextView.setText(artistName);
 
-        albumName = (TextView) rootView.findViewById(R.id.player_artist_album);
-        albumName.setText(topTracks.get(chosenTrack).album.name);
+        albumNameTextView = (TextView) rootView.findViewById(R.id.player_artist_album);
+        albumNameTextView.setText(topTracks.get(chosenTrack).album.name);
 
-        trackName = (TextView) rootView.findViewById(R.id.player_artist_track);
-        trackName.setText(topTracks.get(chosenTrack).name);
+        trackNameTextView = (TextView) rootView.findViewById(R.id.player_artist_track);
+        trackNameTextView.setText(topTracks.get(chosenTrack).name);
 
-        SeekBar seekBar = (SeekBar) rootView.findViewById(R.id.seekBar);
+        seekBar = (SeekBar) rootView.findViewById(R.id.seekBar);
+
+
         playButton = (ImageButton) rootView.findViewById(R.id.play_button);
+        updatePlayer(chosenTrack);
+
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+
+                    mPlayer.seekTo(progress);
+
+                }
+
+
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+
+
         playButton.setImageResource(R.drawable.ic_action_pause);
         playButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (mPlayer.isPlaying())
-                {
+                if (mPlayer.isPlaying()) {
                     playButton.setImageResource(R.drawable.ic_action_play_arrow);
                     mPlayer.pause();
-                }
-                else
-                {
+                } else {
                     playButton.setImageResource(R.drawable.ic_action_pause);
                     mPlayer.start();
                 }
@@ -142,7 +213,39 @@ public class MediaPlayerFragment extends DialogFragment implements MediaControll
             }
         });
         skipNextButton = (ImageButton) rootView.findViewById(R.id.skip_track_button);
+        skipNextButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (chosenTrack >= topTracks.size()-1)
+                {
+                    chosenTrack=0;
+                    updatePlayer(chosenTrack);
+                }
+                else
+                {
+                    chosenTrack++;
+                    updatePlayer(chosenTrack);
+                }
+            }
+        });
+
         skipPreviousButton = (ImageButton) rootView.findViewById(R.id.previous_track_button);
+        skipPreviousButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (chosenTrack == 0)
+                {
+                    chosenTrack=(topTracks.size())-1;
+                    updatePlayer(chosenTrack);
+                }
+                else
+                {
+                    chosenTrack--;
+                    updatePlayer(chosenTrack);
+                }
+
+            }
+        });
 
 
         for (Track t : topTracks)
@@ -150,15 +253,7 @@ public class MediaPlayerFragment extends DialogFragment implements MediaControll
             Log.i(TAG, t.name.toString());
         }
 
-        if (!Utility.isNetworkAvailable(getActivity().getApplicationContext()))
-        {
-            Toast.makeText(getActivity().getApplicationContext(), getString(R.string.no_network_error), Toast.LENGTH_SHORT).show();
-            trackImage.setImageResource(R.drawable.ic_music_note);
-        }
-        else
-        {
-            Picasso.with(getActivity()).load(topTracks.get(chosenTrack).album.images.get(0).url).into(trackImage);
-        }
+
         return rootView;
     }
 
@@ -179,32 +274,9 @@ public class MediaPlayerFragment extends DialogFragment implements MediaControll
         return false;
     }
 
-    public class FetchMusicTask extends AsyncTask<List<Artist>, Void, Void>
-    {
 
 
-        @Override
-        protected Void doInBackground(List<Artist>... params)
-        {
-            //artistList = params[0];
-
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(Void v)
-        {
-            super.onPostExecute(v);
-
-
-
-        }
-    }
-
-
-
-
-//These are for the MediaController
+//These are for the MediaPlayer
 
 
     @Override
@@ -212,6 +284,18 @@ public class MediaPlayerFragment extends DialogFragment implements MediaControll
         mPlayer.start();
         playButton.setImageResource(R.drawable.ic_action_pause);
         Log.i(TAG, "onStart");
+        Handler handler = new Handler();
+        MediaPlayerFragment.this.getActivity().runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (mPlayer != null)
+                {
+                    int currentPos = mPlayer.getCurrentPosition() / 1000;
+                    seekBar.setProgress(currentPos);
+                }
+                mHandler.postDelayed(this, 1000);
+            }
+        });
     }
 
 
@@ -287,6 +371,8 @@ public class MediaPlayerFragment extends DialogFragment implements MediaControll
         });
         mController.show(0);
     }
+
+
 
 
 

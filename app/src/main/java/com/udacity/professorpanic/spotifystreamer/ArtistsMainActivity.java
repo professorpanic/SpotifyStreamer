@@ -1,13 +1,34 @@
 package com.udacity.professorpanic.spotifystreamer;
 
+import android.content.ComponentName;
+import android.content.Intent;
+import android.content.ServiceConnection;
+import android.os.IBinder;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import com.udacity.professorpanic.spotifystreamer.MusicPlayerService.PlayerBinder;
+
+import java.util.ArrayList;
+
+import kaaes.spotify.webapi.android.models.Track;
 
 
-public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMainFragment.Callbacks, ArtistDetailFragment.Callbacks{
+public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMainFragment.Callbacks, ArtistDetailFragment.Callbacks, ArtistDetailFragment.OnTopTracksSelectedListener{
     private boolean mTwoPane;
+    private MusicPlayerService musicPlayerService;
+    private Intent playIntent;
+    private boolean musicBound=false;
+    private Bundle topTracksBundle;
+
+
+    @Override
+    public void onTopTracksSelected(Bundle args) {
+    this.topTracksBundle = args;
+    }
+
+
 
 
     @Override
@@ -82,4 +103,26 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
     public void onArtistSelected(MediaPlayerFragment fragment) {
         fragment.show(getFragmentManager(), "Test");
     }
+
+    //connect to musicplayerservice
+    private ServiceConnection musicConnection = new ServiceConnection(){
+
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            PlayerBinder binder = (PlayerBinder)service;
+            //get service
+            musicPlayerService = binder.getService();
+            //pass list
+            musicPlayerService.setPlayerData(topTracksBundle);
+            musicBound = true;
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            musicBound = false;
+        }
+    };
+
+
+
 }

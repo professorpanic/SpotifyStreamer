@@ -72,6 +72,11 @@ private ArtistDetailAdapter mAdapter;
 
     }
 
+    public interface OnTopTracksSelectedListener
+    {
+        public void onTopTracksSelected(Bundle args);
+    }
+
     @Override
     public void onListItemClick(ListView l, View v, int position, long id) {
         MediaPlayerFragment mediaPlayerFragment = new MediaPlayerFragment();
@@ -80,6 +85,7 @@ private ArtistDetailAdapter mAdapter;
         args.putInt(CHOSEN_TRACK, position);
         args.putString(PASSED_ARTIST_NAME, artistName);
         mediaPlayerFragment.setArguments(args);
+
         mCallbacks.onArtistSelected(mediaPlayerFragment);
 //        getActivity().getSupportFragmentManager().beginTransaction()
 //                .replace(R.id.detail_fragment_container, mediaPlayerFragment)
