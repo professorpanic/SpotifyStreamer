@@ -1,6 +1,7 @@
 package com.udacity.professorpanic.spotifystreamer;
 
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
@@ -15,18 +16,33 @@ import java.util.ArrayList;
 import kaaes.spotify.webapi.android.models.Track;
 
 
-public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMainFragment.Callbacks, ArtistDetailFragment.Callbacks, ArtistDetailFragment.OnTopTracksSelectedListener{
+public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMainFragment.Callbacks, ArtistDetailFragment.Callbacks, MediaPlayerFragment.OnTopTracksSelectedListener{
     private boolean mTwoPane;
     private MusicPlayerService musicPlayerService;
     private Intent playIntent;
     private boolean musicBound=false;
     private Bundle topTracksBundle;
+    private static final String TOP_TRACKS_BUNDLE="Top Tracks Bundle";
 
 
     @Override
     public void onTopTracksSelected(Bundle args) {
-    this.topTracksBundle = args;
+    topTracksBundle = args;
+
+        startMusicService();
     }
+
+    public void startMusicService()
+    {
+
+            playIntent = new Intent(this, MusicPlayerService.class);
+            playIntent.putExtra(TOP_TRACKS_BUNDLE, topTracksBundle);
+            bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
+            startService(playIntent);
+
+
+    }
+
 
 
 
@@ -113,7 +129,6 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
             //get service
             musicPlayerService = binder.getService();
             //pass list
-            musicPlayerService.setPlayerData(topTracksBundle);
             musicBound = true;
         }
 

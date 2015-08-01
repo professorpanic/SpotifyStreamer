@@ -38,6 +38,7 @@ private Callbacks mCallbacks;
 private static final String TRACK_LIST = "Artist Top Ten Tracks";
     private static final String CHOSEN_TRACK = "Chosen Track";
     private static final String PASSED_ARTIST_NAME = "Artist Name";
+    private static final String ARTIST_ID = "Spotify Artist ID";
 
 private ArtistDetailAdapter mAdapter;
 
@@ -72,10 +73,7 @@ private ArtistDetailAdapter mAdapter;
 
     }
 
-    public interface OnTopTracksSelectedListener
-    {
-        public void onTopTracksSelected(Bundle args);
-    }
+
 
     @Override
     public void onListItemClick(ListView l, View v, int position, long id) {
@@ -84,6 +82,7 @@ private ArtistDetailAdapter mAdapter;
         args.putSerializable(TRACK_LIST, topTracks);
         args.putInt(CHOSEN_TRACK, position);
         args.putString(PASSED_ARTIST_NAME, artistName);
+        args.putString(ARTIST_ID, artistString);
         mediaPlayerFragment.setArguments(args);
 
         mCallbacks.onArtistSelected(mediaPlayerFragment);
