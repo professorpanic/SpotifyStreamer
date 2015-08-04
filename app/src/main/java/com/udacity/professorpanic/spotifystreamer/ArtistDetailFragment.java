@@ -79,7 +79,7 @@ private ArtistDetailAdapter mAdapter;
     public void onListItemClick(ListView l, View v, int position, long id) {
         MediaPlayerFragment mediaPlayerFragment = new MediaPlayerFragment();
         Bundle args = new Bundle();
-        args.putSerializable(TRACK_LIST, topTracks);
+        args.putParcelableArrayList(TRACK_LIST, topTracks);
         args.putInt(CHOSEN_TRACK, position);
         args.putString(PASSED_ARTIST_NAME, artistName);
         args.putString(ARTIST_ID, artistString);
@@ -132,8 +132,8 @@ private ArtistDetailAdapter mAdapter;
         protected Void doInBackground(String... params) {
             String artistId = params[0];
             Map<String, Object> spotifyOptions = new HashMap<String, Object>();
-            spotifyOptions.put(SpotifyService.COUNTRY, Locale.getDefault().getCountry());
-            artistTopTracks =spotifyService.getArtistTopTrack(artistId, spotifyOptions);
+            //spotifyOptions.put(SpotifyService.COUNTRY, Locale.getDefault().getCountry());
+            artistTopTracks =spotifyService.getArtistTopTrack(artistId, Locale.getDefault().getCountry());
             artistName = spotifyService.getArtist(artistId).name;
 
 
@@ -166,7 +166,6 @@ private ArtistDetailAdapter mAdapter;
     @Override
     public void onStop() {
         super.onStop();
-        mAdapter.clear();
         mAdapter.notifyDataSetChanged();
     }
 }

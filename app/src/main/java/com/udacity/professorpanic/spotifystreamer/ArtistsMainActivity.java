@@ -4,25 +4,25 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.support.v7.app.ActionBarActivity;
-import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+
 import com.udacity.professorpanic.spotifystreamer.MusicPlayerService.PlayerBinder;
 
-import java.util.ArrayList;
 
-import kaaes.spotify.webapi.android.models.Track;
-
-
-public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMainFragment.Callbacks, ArtistDetailFragment.Callbacks, MediaPlayerFragment.OnTopTracksSelectedListener{
+public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMainFragment.Callbacks, ArtistDetailFragment.Callbacks, MediaPlayerFragment.OnNextTrackListener, MediaPlayerFragment.OnTopTracksSelectedListener{
     private boolean mTwoPane;
     private MusicPlayerService musicPlayerService;
     private Intent playIntent;
     private boolean musicBound=false;
     private Bundle topTracksBundle;
     private static final String TOP_TRACKS_BUNDLE="Top Tracks Bundle";
+    private static final String TAG="Main Activity";
+
 
 
     @Override
@@ -35,15 +35,33 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
     public void startMusicService()
     {
 
-            playIntent = new Intent(this, MusicPlayerService.class);
-            playIntent.putExtra(TOP_TRACKS_BUNDLE, topTracksBundle);
-            bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
-            startService(playIntent);
+            playIntent = new Intent(getApplicationContext(), MusicPlayerService.class);
+            playIntent.putExtras(topTracksBundle);
 
+            startService(playIntent);
+            getApplicationContext().bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
 
     }
 
+    //connect to musicplayerservice
+    private ServiceConnection musicConnection = new ServiceConnection(){
 
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            Log.i(TAG, "We are now connecting to the service");
+            PlayerBinder binder = (PlayerBinder)service;
+            //get service
+            musicPlayerService = binder.getService();
+            //pass list
+            musicBound = true;
+
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            musicBound = false;
+        }
+    };
 
 
 
@@ -120,24 +138,12 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
         fragment.show(getFragmentManager(), "Test");
     }
 
-    //connect to musicplayerservice
-    private ServiceConnection musicConnection = new ServiceConnection(){
-
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            PlayerBinder binder = (PlayerBinder)service;
-            //get service
-            musicPlayerService = binder.getService();
-            //pass list
-            musicBound = true;
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            musicBound = false;
-        }
-    };
 
 
 
+    @Override
+    public void nextTrack() {
+
+        musicPlayerService.nextTrack();
+    }
 }

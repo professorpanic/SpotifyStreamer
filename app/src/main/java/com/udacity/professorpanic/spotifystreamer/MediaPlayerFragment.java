@@ -2,16 +2,12 @@ package com.udacity.professorpanic.spotifystreamer;
 
 import android.app.Activity;
 import android.app.DialogFragment;
-import android.content.Intent;
-import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
@@ -35,6 +31,7 @@ public class MediaPlayerFragment extends DialogFragment {
     private ArrayList<Track> topTracks;
     private Uri trackUri;
     private OnTopTracksSelectedListener mOnTopTracksListener;
+    private OnNextTrackListener mNextTrackCallback;
     ImageView trackImageView;
     TextView artistNameTextView;
     TextView trackNameTextView;
@@ -46,6 +43,7 @@ public class MediaPlayerFragment extends DialogFragment {
     private String artistName;
     private String artistId;
     private int chosenTrack=0;
+
     private static final String CHOSEN_TRACK = "Chosen Track";
     private static final String PASSED_ARTIST_NAME = "Artist Name";
     private static final String TRACK_LIST = "Artist Top Ten Tracks";
@@ -63,6 +61,11 @@ public class MediaPlayerFragment extends DialogFragment {
         void onTopTracksSelected(Bundle args);
     }
 
+    public interface OnNextTrackListener
+    {
+        void nextTrack();
+    }
+
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
@@ -71,6 +74,7 @@ public class MediaPlayerFragment extends DialogFragment {
         // the callback interface. If not, it throws an exception
         try {
             mOnTopTracksListener = (OnTopTracksSelectedListener) activity;
+            mNextTrackCallback = (OnNextTrackListener) activity;
         } catch (ClassCastException e) {
             throw new ClassCastException(activity.toString()
                     + " must implement OnTopTracksSelectedListener");
@@ -129,12 +133,13 @@ public class MediaPlayerFragment extends DialogFragment {
             Bundle intentArgs = new Bundle();
             intentArgs.putString(ARTIST_ID, artistId);
             intentArgs.putInt(CHOSEN_TRACK, chosenTrack);
-
-            trackUri = Uri.parse(topTracks.get(chosenTrack).preview_url);
-            intentArgs.putString(TRACK_URI, topTracks.get(chosenTrack).preview_url);
-            Intent startPlayerIntent = new Intent(getActivity(), MusicPlayerService.class);
-            startPlayerIntent.putExtras(intentArgs);
-            getActivity().startService(startPlayerIntent);
+            intentArgs.putParcelableArrayList(TRACK_LIST, topTracks);
+//            trackUri = Uri.parse(topTracks.get(chosenTrack).preview_url);
+//            intentArgs.putString(TRACK_URI, topTracks.get(chosenTrack).preview_url);
+//            Intent startPlayerIntent = new Intent(getActivity(), MusicPlayerService.class);
+//            startPlayerIntent.putExtras(intentArgs);
+//            getActivity().startService(startPlayerIntent);
+              mOnTopTracksListener.onTopTracksSelected(intentArgs);
 
 
 
@@ -180,11 +185,13 @@ public class MediaPlayerFragment extends DialogFragment {
                 {
                     chosenTrack=0;
                     updateUi(chosenTrack);
+                    mNextTrackCallback.nextTrack();
                 }
                 else
                 {
                     chosenTrack++;
                     updateUi(chosenTrack);
+                    mNextTrackCallback.nextTrack();
                 }
             }
         });

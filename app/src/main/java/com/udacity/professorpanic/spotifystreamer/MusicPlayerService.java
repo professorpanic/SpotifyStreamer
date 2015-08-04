@@ -1,7 +1,6 @@
 package com.udacity.professorpanic.spotifystreamer;
 
 import android.app.Service;
-import android.content.ComponentName;
 import android.content.Intent;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
@@ -12,11 +11,9 @@ import android.os.IBinder;
 import android.os.PowerManager;
 import android.util.Log;
 
-import com.squareup.picasso.Picasso;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
-import kaaes.spotify.webapi.android.models.Artist;
+
 import kaaes.spotify.webapi.android.models.Track;
 
 public class MusicPlayerService extends Service implements MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener, MediaPlayer.OnErrorListener{
@@ -37,12 +34,7 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
     private final PlayerBinder playerBinder = new PlayerBinder();
 
 
-    @Override
-    public ComponentName startService(Intent service) {
-        Log.i(TAG, "in Start Service");
 
-        return super.startService(service);
-    }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
@@ -50,7 +42,7 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
         args = intent.getExtras();
         chosenTrack=0;
         mPlayer = new MediaPlayer();
-        Log.i(TAG, "onCreate");
+
         initMediaPlayer();
         return super.onStartCommand(intent, flags, startId);
     }
@@ -60,6 +52,7 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
 
     public void onCreate()
     {
+        Log.i(TAG, "onCreate");
         super.onCreate();
 
 
@@ -68,17 +61,17 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
 
     public void initMediaPlayer()
     {
+        Log.i(TAG, "init Media Player");
         mPlayer.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
         mPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         mPlayer.setOnPreparedListener(this);
         mPlayer.setOnErrorListener(this);
         mPlayer.setOnCompletionListener(this);
 
-        chosenTrack = (int)args.get("Chosen Track");
-        artistId = (String)args.get("Spotify Artist ID");
-        String uriString = (String)args.get("Track Uri");
-        Log.e(TAG, uriString);
-        trackUri = Uri.parse(uriString);
+        topTracks =  args.getParcelableArrayList(TRACK_LIST);
+        chosenTrack = args.getInt(CHOSEN_TRACK);
+        artistId = args.getString(ARTIST_ID);
+        trackUri = Uri.parse(topTracks.get(chosenTrack).preview_url);
 
 
         try {
@@ -88,8 +81,22 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
         }
         mPlayer.prepareAsync();
 
-        onPrepared(mPlayer);
-        Log.i(TAG, "init Media Player");
+
+
+    }
+
+    public void nextTrack()
+    {
+        chosenTrack++;
+        trackUri = Uri.parse(topTracks.get(chosenTrack).preview_url);
+        mPlayer.reset();
+        try {
+            mPlayer.setDataSource(getApplicationContext(), trackUri);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        mPlayer.prepareAsync();
+
     }
 
 
@@ -109,7 +116,9 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
 
     @Override
     public void onCompletion(MediaPlayer mp) {
+        Log.i(TAG, "in onCompletion");
 
+        nextTrack();
     }
 
     @Override
