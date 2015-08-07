@@ -32,6 +32,7 @@ public class MediaPlayerFragment extends DialogFragment {
     private Uri trackUri;
     private OnTopTracksSelectedListener mOnTopTracksListener;
     private OnNextTrackListener mNextTrackCallback;
+    private Callbacks mCallbacks;
     ImageView trackImageView;
     TextView artistNameTextView;
     TextView trackNameTextView;
@@ -43,6 +44,7 @@ public class MediaPlayerFragment extends DialogFragment {
     private String artistName;
     private String artistId;
     private int chosenTrack=0;
+    private boolean servicePlaying = false;
 
     private static final String CHOSEN_TRACK = "Chosen Track";
     private static final String PASSED_ARTIST_NAME = "Artist Name";
@@ -66,6 +68,15 @@ public class MediaPlayerFragment extends DialogFragment {
         void nextTrack();
     }
 
+    public interface Callbacks
+    {
+        void nextTrack();
+
+        void playOrPauseTrack();
+
+        void previousTrack();
+    }
+
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
@@ -74,7 +85,7 @@ public class MediaPlayerFragment extends DialogFragment {
         // the callback interface. If not, it throws an exception
         try {
             mOnTopTracksListener = (OnTopTracksSelectedListener) activity;
-            mNextTrackCallback = (OnNextTrackListener) activity;
+            mCallbacks = (Callbacks) activity;
         } catch (ClassCastException e) {
             throw new ClassCastException(activity.toString()
                     + " must implement OnTopTracksSelectedListener");
@@ -96,6 +107,41 @@ public class MediaPlayerFragment extends DialogFragment {
 
     }
 
+    @Override
+    public void onStart()
+    {
+        super.onStart();
+//        IntentFilter intentFilter = new IntentFilter();
+//        intentFilter.addAction(MusicPlayerService.PAUSE_OR_PLAY_REQUEST);
+//        intentFilter.addAction(MusicPlayerService.UPDATE_UI_REQUEST);
+//                LocalBroadcastManager.getInstance(getActivity()).
+//                        registerReceiver(receiver, intentFilter);
+    }
+
+    @Override
+    public void onStop() {
+//        LocalBroadcastManager.getInstance(getActivity()).unregisterReceiver(receiver);
+        super.onStop();
+    }
+
+//    private final BroadcastReceiver receiver = new BroadcastReceiver()
+//    {
+//        @Override
+//        public void onReceive(Context context, Intent intent) {
+//            if (intent.getAction().equalsIgnoreCase(MusicPlayerService.PAUSE_OR_PLAY_REQUEST))
+//            {
+//                Log.i(TAG, "now in onReceive");
+//                servicePlaying = intent.getBooleanExtra(MusicPlayerService.PAUSE_OR_PLAY_MESSAGE, false);
+//                updateUi(chosenTrack);
+//            }
+//
+//            if (intent.getAction().equalsIgnoreCase((MusicPlayerService.UPDATE_UI_REQUEST)))
+//            {
+//                chosenTrack = intent.getIntExtra(MusicPlayerService.CURRENT_PLAYING_TRACK, 0);
+//                updateUi(chosenTrack);
+//            }
+//        }
+//    };
     public void updateUi(int trackNumber)
     {
 
@@ -134,12 +180,9 @@ public class MediaPlayerFragment extends DialogFragment {
             intentArgs.putString(ARTIST_ID, artistId);
             intentArgs.putInt(CHOSEN_TRACK, chosenTrack);
             intentArgs.putParcelableArrayList(TRACK_LIST, topTracks);
-//            trackUri = Uri.parse(topTracks.get(chosenTrack).preview_url);
-//            intentArgs.putString(TRACK_URI, topTracks.get(chosenTrack).preview_url);
-//            Intent startPlayerIntent = new Intent(getActivity(), MusicPlayerService.class);
-//            startPlayerIntent.putExtras(intentArgs);
-//            getActivity().startService(startPlayerIntent);
-              mOnTopTracksListener.onTopTracksSelected(intentArgs);
+
+            mOnTopTracksListener.onTopTracksSelected(intentArgs);
+
 
 
 
@@ -167,13 +210,13 @@ public class MediaPlayerFragment extends DialogFragment {
         playButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                if (mPlayer.isPlaying()) {
-//                    playButton.setImageResource(R.drawable.ic_action_play_arrow);
-//                    mPlayer.pause();
-//                } else {
-//                    playButton.setImageResource(R.drawable.ic_action_pause);
-//                    mPlayer.start();
-//                }
+                if (servicePlaying) {
+                    playButton.setImageResource(R.drawable.ic_action_play_arrow);
+                    mCallbacks.playOrPauseTrack();
+                } else {
+                    playButton.setImageResource(R.drawable.ic_action_pause);
+                    mCallbacks.playOrPauseTrack();
+                }
 
             }
         });
@@ -185,13 +228,13 @@ public class MediaPlayerFragment extends DialogFragment {
                 {
                     chosenTrack=0;
                     updateUi(chosenTrack);
-                    mNextTrackCallback.nextTrack();
+                    mCallbacks.nextTrack();
                 }
                 else
                 {
                     chosenTrack++;
                     updateUi(chosenTrack);
-                    mNextTrackCallback.nextTrack();
+                    mCallbacks.nextTrack();
                 }
             }
         });
@@ -204,11 +247,13 @@ public class MediaPlayerFragment extends DialogFragment {
                 {
                     chosenTrack=(topTracks.size())-1;
                     updateUi(chosenTrack);
+                    mCallbacks.previousTrack();
                 }
                 else
                 {
                     chosenTrack--;
                     updateUi(chosenTrack);
+                    mCallbacks.previousTrack();
                 }
 
             }

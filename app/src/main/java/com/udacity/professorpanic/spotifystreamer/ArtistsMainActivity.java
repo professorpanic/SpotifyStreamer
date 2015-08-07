@@ -14,10 +14,14 @@ import android.view.MenuItem;
 import com.udacity.professorpanic.spotifystreamer.MusicPlayerService.PlayerBinder;
 
 
-public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMainFragment.Callbacks, ArtistDetailFragment.Callbacks, MediaPlayerFragment.OnNextTrackListener, MediaPlayerFragment.OnTopTracksSelectedListener{
+public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMainFragment.Callbacks, ArtistDetailFragment.Callbacks, MediaPlayerFragment.Callbacks, MediaPlayerFragment.OnTopTracksSelectedListener{
     private boolean mTwoPane;
     private MusicPlayerService musicPlayerService;
-    private Intent playIntent;
+    private static final String CHOSEN_TRACK = "Chosen Track";
+    private static final String PASSED_ARTIST_NAME = "Artist Name";
+    private static final String TRACK_LIST = "Artist Top Ten Tracks";
+    private static final String ARTIST_ID = "Spotify Artist ID";
+    private static final String TRACK_URI = "Track Uri";
     private boolean musicBound=false;
     private Bundle topTracksBundle;
     private static final String TOP_TRACKS_BUNDLE="Top Tracks Bundle";
@@ -26,22 +30,37 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
 
 
     @Override
-    public void onTopTracksSelected(Bundle args) {
-    topTracksBundle = args;
-
-        startMusicService();
-    }
-
-    public void startMusicService()
+    public void onTopTracksSelected(Bundle args)
     {
+        topTracksBundle = args;
+        Intent playIntent = new Intent(getApplicationContext(), MusicPlayerService.class);
+        playIntent.putExtras(topTracksBundle);
+        Log.i(TAG, "We are now starting the service");
+        //startService(playIntent);
 
-            playIntent = new Intent(getApplicationContext(), MusicPlayerService.class);
-            playIntent.putExtras(topTracksBundle);
+        if (musicPlayerService != null)
+        {
+            Log.i(TAG, "in main activity, musicplayerservice is NOT null" );
+            getApplicationContext().unbindService(musicConnection);
 
-            startService(playIntent);
-            getApplicationContext().bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
-
+        }
+        getApplicationContext().bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
     }
+
+    public MusicPlayerService getMusicPlayerService() {
+        return musicPlayerService;
+    }
+
+//    public void startMusicService()
+//    {
+//
+//            playIntent = new Intent(getApplicationContext(), MusicPlayerService.class);
+//            playIntent.putExtras(topTracksBundle);
+//            Log.i(TAG, "We are now starting the service");
+//            startService(playIntent);
+//            getApplicationContext().bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
+//
+//    }
 
     //connect to musicplayerservice
     private ServiceConnection musicConnection = new ServiceConnection(){
@@ -141,9 +160,23 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
 
 
 
+
+
     @Override
     public void nextTrack() {
 
         musicPlayerService.nextTrack();
+    }
+
+    @Override
+    public void playOrPauseTrack() {
+        musicPlayerService.playOrPauseTrack();
+
+    }
+
+    @Override
+    public void previousTrack() {
+        musicPlayerService.previousTrack();
+
     }
 }
