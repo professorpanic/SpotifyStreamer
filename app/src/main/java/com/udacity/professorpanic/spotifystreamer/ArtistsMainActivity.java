@@ -14,53 +14,34 @@ import android.view.MenuItem;
 import com.udacity.professorpanic.spotifystreamer.MusicPlayerService.PlayerBinder;
 
 
-public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMainFragment.Callbacks, ArtistDetailFragment.Callbacks, MediaPlayerFragment.Callbacks, MediaPlayerFragment.OnTopTracksSelectedListener{
+public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMainFragment.Callbacks, MusicPlayerService.Callbacks, ArtistDetailFragment.Callbacks, MediaPlayerFragment.Callbacks, MediaPlayerFragment.OnTopTracksSelectedListener{
     private boolean mTwoPane;
     private MusicPlayerService musicPlayerService;
-    private static final String CHOSEN_TRACK = "Chosen Track";
-    private static final String PASSED_ARTIST_NAME = "Artist Name";
-    private static final String TRACK_LIST = "Artist Top Ten Tracks";
-    private static final String ARTIST_ID = "Spotify Artist ID";
-    private static final String TRACK_URI = "Track Uri";
     private boolean musicBound=false;
     private Bundle topTracksBundle;
-    private static final String TOP_TRACKS_BUNDLE="Top Tracks Bundle";
     private static final String TAG="Main Activity";
-
-
 
     @Override
     public void onTopTracksSelected(Bundle args)
     {
+        //this starts the new service, with args that come from the MediaPlayerFragment.
         topTracksBundle = args;
+
         Intent playIntent = new Intent(getApplicationContext(), MusicPlayerService.class);
         playIntent.putExtras(topTracksBundle);
         Log.i(TAG, "We are now starting the service");
-        //startService(playIntent);
+               if (musicPlayerService != null)
+               {
+                    //this is for starting a new track the user picks, if the service is in the middle of running.
+                    getApplicationContext().unbindService(musicConnection);
 
-        if (musicPlayerService != null)
-        {
-            Log.i(TAG, "in main activity, musicplayerservice is NOT null" );
-            getApplicationContext().unbindService(musicConnection);
-
-        }
-        getApplicationContext().bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
+                }
+                getApplicationContext().bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
     }
 
     public MusicPlayerService getMusicPlayerService() {
         return musicPlayerService;
     }
-
-//    public void startMusicService()
-//    {
-//
-//            playIntent = new Intent(getApplicationContext(), MusicPlayerService.class);
-//            playIntent.putExtras(topTracksBundle);
-//            Log.i(TAG, "We are now starting the service");
-//            startService(playIntent);
-//            getApplicationContext().bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
-//
-//    }
 
     //connect to musicplayerservice
     private ServiceConnection musicConnection = new ServiceConnection(){
@@ -73,7 +54,8 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
             musicPlayerService = binder.getService();
             //pass list
             musicBound = true;
-
+            //setting up so the service can send callbacks to the activity, for manipulating a fragment
+            musicPlayerService.registerCallbackClient(ArtistsMainActivity.this);
         }
 
         @Override
@@ -99,7 +81,6 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
 
             ArtistsMainFragment artistsMainFragment = new ArtistsMainFragment();
 
-            //hopefully doing it this way will make it easier for when it's time for to implement tablet compatibility, to make a master/detail flow.
             getSupportFragmentManager().beginTransaction().add(R.id.fragment_container, artistsMainFragment).commit();
 
 
@@ -133,6 +114,7 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
         return super.onOptionsItemSelected(item);
     }
 
+    //logic for uis depending on if it's a tablet or a phone
     @Override
     public void onArtistSelected(ArtistDetailFragment fragment) {
         if (findViewById(R.id.detail_fragment_container) == null)
@@ -154,7 +136,7 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
     }
     @Override
     public void onArtistSelected(MediaPlayerFragment fragment) {
-        fragment.show(getFragmentManager(), "Test");
+        fragment.show(getFragmentManager(), MediaPlayerFragment.TAG);
     }
 
 
@@ -178,5 +160,18 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
     public void previousTrack() {
         musicPlayerService.previousTrack();
 
+    }
+
+    @Override
+    public void onTrackChangedByService(int newTrack) {
+        MediaPlayerFragment fragment =  (MediaPlayerFragment)getFragmentManager().findFragmentByTag(MediaPlayerFragment.TAG);
+        //this callback will update the dialog fragment if it exists and is visible, so the player info changes when the service moves to a new track.
+        if (fragment != null)
+        {
+            if (fragment.isVisible())
+            {
+                fragment.updateUi(newTrack);
+            }
+        }
     }
 }

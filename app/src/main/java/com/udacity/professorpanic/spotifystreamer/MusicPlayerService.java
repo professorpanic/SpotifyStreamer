@@ -1,5 +1,6 @@
 package com.udacity.professorpanic.spotifystreamer;
 
+import android.app.Activity;
 import android.app.Service;
 import android.content.Intent;
 import android.media.AudioManager;
@@ -18,15 +19,13 @@ import java.util.ArrayList;
 import kaaes.spotify.webapi.android.models.Track;
 
 public class MusicPlayerService extends Service implements MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener, MediaPlayer.OnErrorListener{
-    private static final String TRACK_BUNDLE = "Contains TRACK_LIST, CHOSEN_TRACK, PASSED_ARTIST_NAME";
-    static final public String PAUSE_OR_PLAY_REQUEST = "com.udacity.professorpanic.spotifystreamer.musicplayerservice.PAUSE_OR_PLAY_REQUEST_PROCESSED";
-    static final public String PAUSE_OR_PLAY_MESSAGE = "com.udacity.professorpanic.spotifystreamer.musicplayerservice.PAUSE_OR_PLAY_MSG";
-    static final public String UPDATE_UI_REQUEST = "com.udacity.professorpanic.spotifystreamer.musicplayerservice.UI_UPDATE_REQUEST_PROCESSED";
+
     private MediaPlayer mPlayer;
     private ArrayList<Track> topTracks;
     private Uri trackUri;
     private String artistName;
     private int chosenTrack;
+    private Callbacks mCallbacks;
     private Bundle args = new Bundle();
     private static final String TRACK_LIST = "Artist Top Ten Tracks";
     private static final String CHOSEN_TRACK = "Chosen Track";
@@ -42,23 +41,24 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
 
 
 
-    class CustomMediaPlayer extends MediaPlayer
+
+
+    public interface Callbacks
     {
-        @Override
-        public boolean isPlaying() {
-//            sendMessage(PAUSE_OR_PLAY_REQUEST);
-            return super.isPlaying();
-        }
+        void onTrackChangedByService(int newTrack);
+    }
+
+    public void registerCallbackClient(Activity activity)
+    {
+        mCallbacks = (Callbacks)activity;
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.i(TAG, "in OnStartCommand");
-
+        //initializing this just to be safe and avoid nulls
         chosenTrack=0;
 
-        //args = intent.getExtras();
-        //initMediaPlayer();
         return super.onStartCommand(intent, START_NOT_STICKY, startId);
     }
 
@@ -69,14 +69,12 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
     {
         Log.i(TAG, "onCreate");
         super.onCreate();
-        mPlayer = new CustomMediaPlayer();
-//        broadcaster = LocalBroadcastManager.getInstance(this);
-
-
-    }
+        mPlayer = new MediaPlayer();
+}
 
     public void initMediaPlayer()
     {
+        //method to make it easy for all the boilerplate stuff for using the mediaplayer
         Log.i(TAG, "init Media Player");
         mPlayer.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
         mPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
@@ -101,21 +99,7 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
 
     }
 
-//    private void sendMessage(String message)
-//    {
 
-//        Intent intent = new Intent(message);
-//        // You can also include some extra data.
-//        if (message.equals(PAUSE_OR_PLAY_REQUEST))
-//        {
-//            intent.putExtra(PAUSE_OR_PLAY_MESSAGE, mPlayer.isPlaying());
-//        }
-//        else if (message.equals((UPDATE_UI_REQUEST)))
-//        {
-//            intent.putExtra(CURRENT_PLAYING_TRACK, chosenTrack);
-//        }
-//        broadcaster.sendBroadcast(intent);
-//    }
 
     public void nextTrack()
     {
@@ -136,7 +120,7 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
             e.printStackTrace();
         }
         mPlayer.prepareAsync();
-//        sendMessage(UPDATE_UI_REQUEST);
+        mCallbacks.onTrackChangedByService(chosenTrack);
     }
 
     public void playOrPauseTrack() {
@@ -170,7 +154,8 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
             e.printStackTrace();
         }
         mPlayer.prepareAsync();
-//        sendMessage(UPDATE_UI_REQUEST);
+        mCallbacks.onTrackChangedByService(chosenTrack);
+
     }
 
 
