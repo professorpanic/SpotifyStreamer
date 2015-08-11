@@ -20,17 +20,18 @@ import kaaes.spotify.webapi.android.models.Track;
 
 public class MusicPlayerService extends Service implements MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener, MediaPlayer.OnErrorListener{
 
+    public static final String SERVICE_RESULT = "com.udacity.professorpanic.spotifystreamer.MusicPlayerService.REQUEST_PROCESSED";
+
+    public static final String SONG_POSITION = "com.udacity.professorpanic.spotifystreamer.MusicPlayerService.SONG_POSITION";
+    public static final String SONG_DURATION = "com.udacity.professorpanic.spotifystreamer.MusicPlayerService.SONG_DURATION";
     private MediaPlayer mPlayer;
     private ArrayList<Track> topTracks;
     private Uri trackUri;
-    private String artistName;
     private int chosenTrack;
     private Callbacks mCallbacks;
     private Bundle args = new Bundle();
     private static final String TRACK_LIST = "Artist Top Ten Tracks";
     private static final String CHOSEN_TRACK = "Chosen Track";
-    public static final String CURRENT_PLAYING_TRACK = "Now Playing";
-    private static final String PASSED_ARTIST_NAME = "Artist Name";
     private static final String TAG = "MusicPlayerService";
     private static final String ARTIST_ID = "Spotify artist ID";
     private static final String TRACK_URI = "track URI";
@@ -46,6 +47,16 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
     public interface Callbacks
     {
         void onTrackChangedByService(int newTrack);
+    }
+
+    public void sendResult(int position, int duration) {
+        Intent intent = new Intent(SERVICE_RESULT);
+        if(position >= 0 && duration >= 0)
+        {
+            intent.putExtra(SONG_POSITION, position);
+            intent.putExtra(SONG_DURATION, duration);
+        }
+        broadcaster.sendBroadcast(intent);
     }
 
     public void registerCallbackClient(Activity activity)
@@ -65,11 +76,27 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
     public MusicPlayerService() {
     }
 
+    public String getCurrentPlayingTrack()
+    {
+        return topTracks.get(chosenTrack).uri;
+    }
+
+    public boolean isPlayingATrack() {
+        if (mPlayer != null) {
+            return mPlayer.isPlaying();
+        }
+        else
+        {
+            return false;
+        }
+    }
+
     public void onCreate()
     {
         Log.i(TAG, "onCreate");
         super.onCreate();
         mPlayer = new MediaPlayer();
+        broadcaster = LocalBroadcastManager.getInstance(this);
 }
 
     public void initMediaPlayer()
@@ -87,19 +114,40 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
         artistId = args.getString(ARTIST_ID);
         trackUri = Uri.parse(topTracks.get(chosenTrack).preview_url);
 
-
-        try {
+        try
+        {
             mPlayer.setDataSource(getApplicationContext(), trackUri);
-        } catch (IOException e) {
+        }
+        catch (IOException e)
+        {
             e.printStackTrace();
         }
         mPlayer.prepareAsync();
-
-
-
     }
 
+    public int getCurrentPos()
+    {
+        if (mPlayer != null)
+        {
+            return mPlayer.getCurrentPosition();
+        }
+        else
+        {
+            return 0;
+        }
+    }
 
+    public int getDuration()
+    {
+        if (mPlayer != null)
+        {
+            return mPlayer.getDuration();
+        }
+        else
+        {
+            return 0;
+        }
+    }
 
     public void nextTrack()
     {
@@ -148,9 +196,11 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
         }
         trackUri = Uri.parse(topTracks.get(chosenTrack).preview_url);
         mPlayer.reset();
-        try {
+        try
+        {
             mPlayer.setDataSource(getApplicationContext(), trackUri);
-        } catch (IOException e) {
+        } catch (IOException e)
+        {
             e.printStackTrace();
         }
         mPlayer.prepareAsync();
@@ -170,7 +220,6 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
 
     @Override
     public IBinder onBind(Intent intent) {
-
         args = intent.getExtras();
         initMediaPlayer();
         return playerBinder;
@@ -179,7 +228,6 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
     @Override
     public void onCompletion(MediaPlayer mp) {
         Log.i(TAG, "in onCompletion");
-
         nextTrack();
     }
 
@@ -204,9 +252,6 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
             mPlayer.stop();
             mPlayer.reset();
         }
-
-
         mPlayer.start();
-
     }
 }

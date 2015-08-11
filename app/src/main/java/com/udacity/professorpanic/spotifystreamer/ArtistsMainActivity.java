@@ -13,6 +13,10 @@ import android.view.MenuItem;
 
 import com.udacity.professorpanic.spotifystreamer.MusicPlayerService.PlayerBinder;
 
+import java.util.ArrayList;
+
+import kaaes.spotify.webapi.android.models.Track;
+
 
 public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMainFragment.Callbacks, MusicPlayerService.Callbacks, ArtistDetailFragment.Callbacks, MediaPlayerFragment.Callbacks, MediaPlayerFragment.OnTopTracksSelectedListener{
     private boolean mTwoPane;
@@ -29,11 +33,21 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
 
         Intent playIntent = new Intent(getApplicationContext(), MusicPlayerService.class);
         playIntent.putExtras(topTracksBundle);
+        int chosenTrack = topTracksBundle.getInt(MediaPlayerFragment.CHOSEN_TRACK);
+        ArrayList<Track> topTracks = topTracksBundle.getParcelableArrayList(MediaPlayerFragment.TRACK_LIST);
         Log.i(TAG, "We are now starting the service");
                if (musicPlayerService != null)
                {
-                    //this is for starting a new track the user picks, if the service is in the middle of running.
-                    getApplicationContext().unbindService(musicConnection);
+                   Log.i(TAG, musicPlayerService.getCurrentPlayingTrack() + " Is the current playing track");
+                   Log.i(TAG, topTracks.get(chosenTrack).uri + " is the incoming track");
+                   if (!musicPlayerService.getCurrentPlayingTrack().equals(topTracks.get(chosenTrack).uri))
+                    //this is for starting a new track the user picks, if the service is in the middle of running. If the current track and this bundle do not much, user
+                   //wants a new song. otherwise, don't kill and restart the service.
+                   {
+
+                       Log.i(TAG, "This kills the service.");
+                       getApplicationContext().unbindService(musicConnection);
+                   }
 
                 }
                 getApplicationContext().bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);

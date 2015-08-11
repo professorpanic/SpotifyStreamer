@@ -41,11 +41,11 @@ public class MediaPlayerFragment extends DialogFragment {
     private String artistName;
     private String artistId;
     private int chosenTrack=0;
-    private boolean servicePlaying = false;
+    private boolean servicePlaying = true;
 
     public static final String CHOSEN_TRACK = "Chosen Track";
-    private static final String PASSED_ARTIST_NAME = "Artist Name";
-    private static final String TRACK_LIST = "Artist Top Ten Tracks";
+    public static final String PASSED_ARTIST_NAME = "Artist Name";
+    public static final String TRACK_LIST = "Artist Top Ten Tracks";
     public static final String ARTIST_ID = "Spotify Artist ID";
 
     SeekBar seekBar;
