@@ -2,9 +2,14 @@ package com.udacity.professorpanic.spotifystreamer;
 
 import android.app.Activity;
 import android.app.DialogFragment;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -30,6 +35,8 @@ public class MediaPlayerFragment extends DialogFragment {
     private Uri trackUri;
     private OnTopTracksSelectedListener mOnTopTracksListener;
     private Callbacks mCallbacks;
+    private int position;
+    private int duration;
     ImageView trackImageView;
     TextView artistNameTextView;
     TextView trackNameTextView;
@@ -41,8 +48,8 @@ public class MediaPlayerFragment extends DialogFragment {
     private String artistName;
     private String artistId;
     private int chosenTrack=0;
-    private boolean servicePlaying = true;
-
+    private boolean servicePlaying = false;
+    private BroadcastReceiver receiver;
     public static final String CHOSEN_TRACK = "Chosen Track";
     public static final String PASSED_ARTIST_NAME = "Artist Name";
     public static final String TRACK_LIST = "Artist Top Ten Tracks";
@@ -60,6 +67,15 @@ public class MediaPlayerFragment extends DialogFragment {
         void onTopTracksSelected(Bundle args);
     }
 
+    public void updateSeekBar(int position, int duration)
+    {
+       if (seekBar != null)
+       {
+        seekBar.setMax(duration);
+        seekBar.setProgress(position);
+       }
+    }
+
 
 
     public interface Callbacks
@@ -69,6 +85,12 @@ public class MediaPlayerFragment extends DialogFragment {
         void playOrPauseTrack();
 
         void previousTrack();
+
+        void seekBarChanged(SeekBar seekBar,int progress,boolean fromUser);
+
+        boolean isPlaying();
+
+
     }
 
     @Override
@@ -93,11 +115,35 @@ public class MediaPlayerFragment extends DialogFragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
+
         args = this.getArguments();
         topTracks = (ArrayList<Track>)args.get(TRACK_LIST);
         artistName = args.getString(PASSED_ARTIST_NAME);
         artistId = args.getString(ARTIST_ID);
         chosenTrack = args.getInt(CHOSEN_TRACK);
+
+        receiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent)
+            {
+                position = intent.getIntExtra(MusicPlayerService.SONG_POSITION, 0);
+                duration = intent.getIntExtra(MusicPlayerService.SONG_DURATION, 0);
+                updateSeekBar(position, duration);
+            }
+        };
+    }
+
+    @Override
+    public void onStart()
+    {
+        super.onStart();
+        LocalBroadcastManager.getInstance(getActivity().getApplicationContext()).registerReceiver((receiver), new IntentFilter(MusicPlayerService.SERVICE_RESULT));
+    }
+
+    @Override
+    public void onStop() {
+        LocalBroadcastManager.getInstance(getActivity().getApplicationContext()).unregisterReceiver(receiver);
+        super.onStop();
     }
 
 
@@ -117,6 +163,9 @@ public class MediaPlayerFragment extends DialogFragment {
             artistNameTextView.setText(artistName);
             trackNameTextView.setText(topTracks.get(trackNumber).name);
             Picasso.with(getActivity()).load(topTracks.get(trackNumber).album.images.get(0).url).into(trackImageView);
+            seekBar.setMax((int)(topTracks.get(trackNumber).duration_ms) / 1000);
+
+
 
         }
 
@@ -155,33 +204,53 @@ public class MediaPlayerFragment extends DialogFragment {
         trackNameTextView.setText(topTracks.get(chosenTrack).name);
 
         seekBar = (SeekBar) rootView.findViewById(R.id.seekBar);
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    mCallbacks.seekBarChanged(seekBar, progress, fromUser);
+                }
+            }
 
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
 
         playButton = (ImageButton) rootView.findViewById(R.id.play_button);
         updateUi(chosenTrack);
+        if (mCallbacks.isPlaying())
+        {
+            playButton.setImageResource(R.drawable.ic_action_pause);
+        }
+        else
+        {
+            playButton.setImageResource(R.drawable.ic_action_play_arrow);
+        }
 
-
-
-
-        playButton.setImageResource(R.drawable.ic_action_pause);
         playButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if (servicePlaying)
-                {
-                    playButton.setImageResource(R.drawable.ic_action_pause);
-                    mCallbacks.playOrPauseTrack();
-
-                }
-                else
+                if (mCallbacks.isPlaying())
                 {
                     playButton.setImageResource(R.drawable.ic_action_play_arrow);
                     mCallbacks.playOrPauseTrack();
-
+                }
+                else
+                {
+                    playButton.setImageResource(R.drawable.ic_action_pause);
+                    mCallbacks.playOrPauseTrack();
                 }
 
             }
         });
+
         skipNextButton = (ImageButton) rootView.findViewById(R.id.skip_track_button);
         skipNextButton.setOnClickListener(new View.OnClickListener() {
             @Override

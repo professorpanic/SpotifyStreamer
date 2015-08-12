@@ -35,10 +35,10 @@ private SpotifyService spotifyService;
 private ArrayList<Track> topTracks = new ArrayList<Track>(); //initializing this just to have something to inflate the view with at first, this will get overwritten by the Async Task I made
 private static final String TAG = "ArtistDetailFragment";
 private Callbacks mCallbacks;
-private static final String TRACK_LIST = "Artist Top Ten Tracks";
-    private static final String CHOSEN_TRACK = "Chosen Track";
-    private static final String PASSED_ARTIST_NAME = "Artist Name";
-    private static final String ARTIST_ID = "Spotify Artist ID";
+public static final String TRACK_LIST = "Artist Top Ten Tracks";
+public static final String CHOSEN_TRACK = "Chosen Track";
+public static final String PASSED_ARTIST_NAME = "Artist Name";
+public static final String ARTIST_ID = "Spotify Artist ID";
 
 private ArtistDetailAdapter mAdapter;
 
@@ -73,7 +73,10 @@ private ArtistDetailAdapter mAdapter;
 
     }
 
-
+    public interface OnTopTracksSelectedListener
+    {
+        void onTopTracksSelected(Bundle args);
+    }
 
     @Override
     public void onListItemClick(ListView l, View v, int position, long id) {

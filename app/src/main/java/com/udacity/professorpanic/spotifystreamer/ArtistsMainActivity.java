@@ -1,5 +1,6 @@
 package com.udacity.professorpanic.spotifystreamer;
 
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -10,6 +11,7 @@ import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.SeekBar;
 
 import com.udacity.professorpanic.spotifystreamer.MusicPlayerService.PlayerBinder;
 
@@ -24,6 +26,7 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
     private boolean musicBound=false;
     private Bundle topTracksBundle;
     private static final String TAG="Main Activity";
+    private BroadcastReceiver receiver;
 
     @Override
     public void onTopTracksSelected(Bundle args)
@@ -58,10 +61,12 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
     }
 
     //connect to musicplayerservice
-    private ServiceConnection musicConnection = new ServiceConnection(){
+    private ServiceConnection musicConnection = new ServiceConnection()
+    {
 
         @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
+        public void onServiceConnected(ComponentName name, IBinder service)
+        {
             Log.i(TAG, "We are now connecting to the service");
             PlayerBinder binder = (PlayerBinder)service;
             //get service
@@ -86,18 +91,18 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
         setContentView(getLayoutResId());
 
         // checking to be sure that the fragment container has a fragment in it.
-        if (findViewById(R.id.fragment_container) != null) {
+        if (findViewById(R.id.fragment_container) != null)
+        {
             // if it does, we should check if's being restored from a previous
             // instance state.
-            if (savedInstanceState != null) {
+            if (savedInstanceState != null)
+            {
                 return;
             }
 
             ArtistsMainFragment artistsMainFragment = new ArtistsMainFragment();
 
             getSupportFragmentManager().beginTransaction().add(R.id.fragment_container, artistsMainFragment).commit();
-
-
         }
 
     }
@@ -131,6 +136,7 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
     //logic for uis depending on if it's a tablet or a phone
     @Override
     public void onArtistSelected(ArtistDetailFragment fragment) {
+
         if (findViewById(R.id.detail_fragment_container) == null)
         {
             getSupportFragmentManager().beginTransaction()
@@ -153,11 +159,6 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
         fragment.show(getFragmentManager(), MediaPlayerFragment.TAG);
     }
 
-
-
-
-
-
     @Override
     public void nextTrack() {
 
@@ -177,7 +178,23 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
     }
 
     @Override
-    public void onTrackChangedByService(int newTrack) {
+    public void seekBarChanged(SeekBar seekBar, int progress, boolean fromUser)
+    {
+        if (fromUser)
+        {
+            musicPlayerService.getPlayer().seekTo(progress);
+        }
+    }
+
+    @Override
+    public boolean isPlaying()
+    {
+        return musicPlayerService.getPlayer().isPlaying();
+    }
+
+    @Override
+    public void onTrackChangedByService(int newTrack)
+    {
         MediaPlayerFragment fragment =  (MediaPlayerFragment)getFragmentManager().findFragmentByTag(MediaPlayerFragment.TAG);
         //this callback will update the dialog fragment if it exists and is visible, so the player info changes when the service moves to a new track.
         if (fragment != null)
@@ -188,4 +205,6 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
             }
         }
     }
+
+
 }

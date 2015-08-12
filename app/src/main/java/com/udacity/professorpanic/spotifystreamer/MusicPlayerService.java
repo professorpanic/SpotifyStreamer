@@ -18,16 +18,18 @@ import java.util.ArrayList;
 
 import kaaes.spotify.webapi.android.models.Track;
 
-public class MusicPlayerService extends Service implements MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener, MediaPlayer.OnErrorListener{
+public class MusicPlayerService extends Service implements MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener, MediaPlayer.OnErrorListener, MediaPlayer.OnBufferingUpdateListener{
 
     public static final String SERVICE_RESULT = "com.udacity.professorpanic.spotifystreamer.MusicPlayerService.REQUEST_PROCESSED";
 
     public static final String SONG_POSITION = "com.udacity.professorpanic.spotifystreamer.MusicPlayerService.SONG_POSITION";
     public static final String SONG_DURATION = "com.udacity.professorpanic.spotifystreamer.MusicPlayerService.SONG_DURATION";
+    public static final String SERVICE_IS_PLAYING = "com.udacity.professorpanic.spotifystreamer.MusicPlayerService.SERVICE_IS_PLAYING";
     private MediaPlayer mPlayer;
     private ArrayList<Track> topTracks;
     private Uri trackUri;
     private int chosenTrack;
+    private int mBufferPosition;
     private Callbacks mCallbacks;
     private Bundle args = new Bundle();
     private static final String TRACK_LIST = "Artist Top Ten Tracks";
@@ -37,11 +39,57 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
     private static final String TRACK_URI = "track URI";
     private String artistId;
     private final PlayerBinder playerBinder = new PlayerBinder();
+    private final static int SEEKBAR_UPDATE_INTERVAL = 1000;
     private LocalBroadcastManager broadcaster;
+    private Thread seekbarUpdaterThread;
 
+    @Override
+    public void onBufferingUpdate(MediaPlayer mp, int percent)
+    {
+        setBufferPosition(percent * mp.getDuration() / 100);
+    }
 
+    private void setBufferPosition(int progress)
+    {
+        mBufferPosition = progress;
+    }
 
+    private void startUpdater() {
+        seekbarUpdaterThread = new Thread(new Runnable() {
+            @Override public void run() {
+                Thread myCurrent = Thread.currentThread();
+                while (seekbarUpdaterThread == myCurrent) {
 
+                    try {
+                        Thread.sleep(SEEKBAR_UPDATE_INTERVAL);
+                        notifyUpdate();
+                    } catch (InterruptedException e) {
+                        Log.e(TAG, "Error in startUpdaterthread: " + e.getMessage());
+                        break;
+                    }
+                }
+
+            }
+        });
+        seekbarUpdaterThread.start();
+    }
+
+    private void stopUpdater()
+    {
+        seekbarUpdaterThread.interrupt();
+    }
+
+    private void notifyUpdate() {
+        {
+            if (mPlayer != null)
+            {
+                if (mPlayer.isPlaying())
+                {
+                    sendResult(mPlayer.getCurrentPosition(), mPlayer.getDuration(), mPlayer.isPlaying());
+                }
+            }
+        }
+    }
 
 
     public interface Callbacks
@@ -49,12 +97,13 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
         void onTrackChangedByService(int newTrack);
     }
 
-    public void sendResult(int position, int duration) {
+    public void sendResult(int position, int duration, boolean isPlaying) {
         Intent intent = new Intent(SERVICE_RESULT);
         if(position >= 0 && duration >= 0)
         {
             intent.putExtra(SONG_POSITION, position);
             intent.putExtra(SONG_DURATION, duration);
+            intent.putExtra(SERVICE_IS_PLAYING, isPlaying);
         }
         broadcaster.sendBroadcast(intent);
     }
@@ -81,28 +130,24 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
         return topTracks.get(chosenTrack).uri;
     }
 
-    public boolean isPlayingATrack() {
-        if (mPlayer != null) {
-            return mPlayer.isPlaying();
-        }
-        else
-        {
-            return false;
-        }
-    }
-
     public void onCreate()
     {
         Log.i(TAG, "onCreate");
         super.onCreate();
         mPlayer = new MediaPlayer();
         broadcaster = LocalBroadcastManager.getInstance(this);
-}
+    }
+
+
+
+
 
     public void initMediaPlayer()
     {
         //method to make it easy for all the boilerplate stuff for using the mediaplayer
         Log.i(TAG, "init Media Player");
+
+
         mPlayer.setWakeMode(getApplicationContext(), PowerManager.PARTIAL_WAKE_LOCK);
         mPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         mPlayer.setOnPreparedListener(this);
@@ -123,31 +168,14 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
             e.printStackTrace();
         }
         mPlayer.prepareAsync();
+
     }
 
-    public int getCurrentPos()
+    public MediaPlayer getPlayer()
     {
-        if (mPlayer != null)
-        {
-            return mPlayer.getCurrentPosition();
-        }
-        else
-        {
-            return 0;
-        }
+        return mPlayer;
     }
 
-    public int getDuration()
-    {
-        if (mPlayer != null)
-        {
-            return mPlayer.getDuration();
-        }
-        else
-        {
-            return 0;
-        }
-    }
 
     public void nextTrack()
     {
@@ -169,6 +197,7 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
         }
         mPlayer.prepareAsync();
         mCallbacks.onTrackChangedByService(chosenTrack);
+
     }
 
     public void playOrPauseTrack() {
@@ -206,6 +235,7 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
         mPlayer.prepareAsync();
         mCallbacks.onTrackChangedByService(chosenTrack);
 
+
     }
 
 
@@ -228,14 +258,17 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
     @Override
     public void onCompletion(MediaPlayer mp) {
         Log.i(TAG, "in onCompletion");
+
         nextTrack();
     }
 
     @Override
     public boolean onUnbind(Intent intent){
+        stopUpdater();
         mPlayer.stop();
         mPlayer.release();
         stopSelf();
+
         return false;
     }
 
@@ -247,11 +280,12 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
     @Override
     public void onPrepared(MediaPlayer mp) {
         Log.i(TAG, "onPrepared");
-        if (mPlayer.isPlaying())
-        {
+        if (mPlayer.isPlaying()) {
+            stopUpdater();
             mPlayer.stop();
             mPlayer.reset();
         }
         mPlayer.start();
+        startUpdater();
     }
 }
