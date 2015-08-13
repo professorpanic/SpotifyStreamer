@@ -62,6 +62,31 @@
     </LinearLayout>
 
 
+    <RelativeLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="Small Text"
+            android:id="@+id/seekbar_duration_textview"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentEnd="true" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceSmall"
+            android:text="Small Text"
+            android:id="@+id/seekbar_current_position_textview"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true" />
+
+    </RelativeLayout>
 
     <LinearLayout
         android:id="@+id/mediaController"
@@ -76,6 +101,13 @@
         <ImageButton
             android:id="@+id/previous_track_button"
             android:src="@drawable/ic_action_skip_previous"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:padding="15dp" />
+
+        <ImageButton
+            android:id="@+id/stop_button"
+            android:src="@drawable/ic_action_stop"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:padding="15dp" />

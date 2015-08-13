@@ -45,6 +45,9 @@ public class MediaPlayerFragment extends DialogFragment {
     ImageButton playButton;
     ImageButton skipNextButton;
     ImageButton skipPreviousButton;
+    ImageButton stopButton;
+    TextView positionTextView;
+    TextView durationTextView;
     private String artistName;
     private String artistId;
     private int chosenTrack=0;
@@ -54,9 +57,13 @@ public class MediaPlayerFragment extends DialogFragment {
     public static final String PASSED_ARTIST_NAME = "Artist Name";
     public static final String TRACK_LIST = "Artist Top Ten Tracks";
     public static final String ARTIST_ID = "Spotify Artist ID";
-
     SeekBar seekBar;
     Bundle args;
+    //helpers for calculating music time
+    final int HOUR = 60*60*1000;
+    final int MINUTE = 60*1000;
+    final int SECOND = 1000;
+
 
 
 
@@ -67,13 +74,44 @@ public class MediaPlayerFragment extends DialogFragment {
         void onTopTracksSelected(Bundle args);
     }
 
-    public void updateSeekBar(int position, int duration)
+    public void updateSeekBar(int position, int duration, boolean isPlaying)
     {
        if (seekBar != null)
        {
         seekBar.setMax(duration);
         seekBar.setProgress(position);
+        int positionHours = position/HOUR;
+        int positionMinutes = position/MINUTE;
+        int positionSeconds = position/SECOND;
+        int durationHours = duration/HOUR;
+        int durationMinutes = duration/MINUTE;
+        int durationSeconds = duration/SECOND;
+
+        //another dirty trick.
+        if (positionSeconds < 10)
+        {
+            positionTextView.setText(positionHours + positionMinutes + ":0" + positionSeconds);
+        }
+        else
+        {
+            positionTextView.setText(positionHours + positionMinutes + ":" + positionSeconds);
+        }
+
+        durationTextView.setText(durationHours+ durationMinutes + ":" + durationSeconds);
+           //pretty ugly hack, but this is so that when the dialog first pops up, if the music is actually playing, it'll flip to a paused symbol.
+           //otherwise, the service hasn't finished connecting and you won't be able to use a callback to check on if the player is playing or not, yet.
+
+           if (isPlaying)
+           {
+               playButton.setImageResource(R.drawable.ic_action_pause);
+           }
+           else
+           {
+               playButton.setImageResource(R.drawable.ic_action_play_arrow);
+           }
        }
+
+
     }
 
 
@@ -89,6 +127,8 @@ public class MediaPlayerFragment extends DialogFragment {
         void seekBarChanged(SeekBar seekBar,int progress,boolean fromUser);
 
         boolean isPlaying();
+
+        void stop();
 
 
     }
@@ -122,13 +162,15 @@ public class MediaPlayerFragment extends DialogFragment {
         artistId = args.getString(ARTIST_ID);
         chosenTrack = args.getInt(CHOSEN_TRACK);
 
+
         receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent)
             {
                 position = intent.getIntExtra(MusicPlayerService.SONG_POSITION, 0);
                 duration = intent.getIntExtra(MusicPlayerService.SONG_DURATION, 0);
-                updateSeekBar(position, duration);
+                servicePlaying = intent.getBooleanExtra(MusicPlayerService.SERVICE_IS_PLAYING, false);
+                updateSeekBar(position, duration, servicePlaying);
             }
         };
     }
@@ -163,7 +205,7 @@ public class MediaPlayerFragment extends DialogFragment {
             artistNameTextView.setText(artistName);
             trackNameTextView.setText(topTracks.get(trackNumber).name);
             Picasso.with(getActivity()).load(topTracks.get(trackNumber).album.images.get(0).url).into(trackImageView);
-            seekBar.setMax((int)(topTracks.get(trackNumber).duration_ms) / 1000);
+            //seekBar.setMax((int)(topTracks.get(trackNumber).duration_ms) / 1000);
 
 
 
@@ -203,6 +245,12 @@ public class MediaPlayerFragment extends DialogFragment {
         trackNameTextView = (TextView) rootView.findViewById(R.id.player_artist_track);
         trackNameTextView.setText(topTracks.get(chosenTrack).name);
 
+        durationTextView = (TextView) rootView.findViewById(R.id.seekbar_duration_textview);
+        durationTextView.setText("0:00");
+
+        positionTextView = (TextView) rootView.findViewById(R.id.seekbar_current_position_textview);
+        positionTextView.setText("0:00");
+
         seekBar = (SeekBar) rootView.findViewById(R.id.seekBar);
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
@@ -225,7 +273,7 @@ public class MediaPlayerFragment extends DialogFragment {
 
         playButton = (ImageButton) rootView.findViewById(R.id.play_button);
         updateUi(chosenTrack);
-        if (mCallbacks.isPlaying())
+        if (servicePlaying)
         {
             playButton.setImageResource(R.drawable.ic_action_pause);
         }
@@ -287,6 +335,15 @@ public class MediaPlayerFragment extends DialogFragment {
                     mCallbacks.previousTrack();
                 }
 
+            }
+        });
+
+        stopButton = (ImageButton) rootView.findViewById(R.id.stop_button);
+        stopButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                mCallbacks.stop();
+                onStop();
             }
         });
 

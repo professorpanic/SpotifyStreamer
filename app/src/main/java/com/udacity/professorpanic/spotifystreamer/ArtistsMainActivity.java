@@ -193,6 +193,14 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
     }
 
     @Override
+    public void stop() {
+        musicPlayerService.stopSelf();
+        getApplicationContext().unbindService(musicConnection);
+        musicPlayerService = null;
+
+    }
+
+    @Override
     public void onTrackChangedByService(int newTrack)
     {
         MediaPlayerFragment fragment =  (MediaPlayerFragment)getFragmentManager().findFragmentByTag(MediaPlayerFragment.TAG);

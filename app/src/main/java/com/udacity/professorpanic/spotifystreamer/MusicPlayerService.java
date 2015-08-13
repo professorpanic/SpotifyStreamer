@@ -25,6 +25,7 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
     public static final String SONG_POSITION = "com.udacity.professorpanic.spotifystreamer.MusicPlayerService.SONG_POSITION";
     public static final String SONG_DURATION = "com.udacity.professorpanic.spotifystreamer.MusicPlayerService.SONG_DURATION";
     public static final String SERVICE_IS_PLAYING = "com.udacity.professorpanic.spotifystreamer.MusicPlayerService.SERVICE_IS_PLAYING";
+    public static String START_FOREGROUND = "com.udacity.professorpanic.spotifystreamer.MusicPlayerService.startforeground";
     private MediaPlayer mPlayer;
     private ArrayList<Track> topTracks;
     private Uri trackUri;
@@ -39,10 +40,12 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
     private static final String TRACK_URI = "track URI";
     private String artistId;
     private final PlayerBinder playerBinder = new PlayerBinder();
-    private final static int SEEKBAR_UPDATE_INTERVAL = 1000;
+    private final static int SEEKBAR_UPDATE_INTERVAL = 500;
     private LocalBroadcastManager broadcaster;
     private Thread seekbarUpdaterThread;
 
+    //from here to notifyUpdate is code specfically for updating the seekbar and the Playing boolean,
+    // since relying on an IsPlaying value from the service bombs if it isn't connected yet.
     @Override
     public void onBufferingUpdate(MediaPlayer mp, int percent)
     {
@@ -271,6 +274,7 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
 
         return false;
     }
+
 
     @Override
     public boolean onError(MediaPlayer mp, int what, int extra) {
