@@ -58,10 +58,18 @@ public class ArtistAdapter extends ArrayAdapter {
 
             if (artist.images.size() > 0)
             {
-                if (artist.images.size() > 2)
+                if (artist.images.size() > 1)
                 {
                     Picasso.with(getContext()).load(artist.images.get(1).url).into(albumImage);
                 }
+                else
+                {
+                    Picasso.with(getContext()).load(artist.images.get(0).url).into(albumImage);
+                }
+            }
+            else
+            {
+                albumImage.setImageResource(R.drawable.ic_music_note);
             }
 
         }

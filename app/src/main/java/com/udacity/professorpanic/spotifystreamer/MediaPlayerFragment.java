@@ -50,6 +50,7 @@ public class MediaPlayerFragment extends DialogFragment {
     TextView durationTextView;
     private String artistName;
     private String artistId;
+    private String songTitle;
     private int chosenTrack=0;
     private boolean servicePlaying = false;
     private BroadcastReceiver receiver;
@@ -57,6 +58,7 @@ public class MediaPlayerFragment extends DialogFragment {
     public static final String PASSED_ARTIST_NAME = "Artist Name";
     public static final String TRACK_LIST = "Artist Top Ten Tracks";
     public static final String ARTIST_ID = "Spotify Artist ID";
+    public static final String SONG_TITLE = "Song Title";
     SeekBar seekBar;
     Bundle args;
     //helpers for calculating music time
@@ -163,6 +165,7 @@ public class MediaPlayerFragment extends DialogFragment {
         chosenTrack = args.getInt(CHOSEN_TRACK);
 
 
+
         receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent)
@@ -226,6 +229,8 @@ public class MediaPlayerFragment extends DialogFragment {
             intentArgs.putString(ARTIST_ID, artistId);
             intentArgs.putInt(CHOSEN_TRACK, chosenTrack);
             intentArgs.putParcelableArrayList(TRACK_LIST, topTracks);
+            intentArgs.putString(PASSED_ARTIST_NAME, artistName);
+            intentArgs.putString(SONG_TITLE, topTracks.get(chosenTrack).name);
 
             //if this view's being created, that means the uuser wants to play music. This callback will throw the track arraylist back to the
             //main activity, which will in turn start the service.

@@ -1,6 +1,8 @@
 package com.udacity.professorpanic.spotifystreamer;
 
 import android.app.Activity;
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
 import android.media.AudioManager;
@@ -21,7 +23,7 @@ import kaaes.spotify.webapi.android.models.Track;
 public class MusicPlayerService extends Service implements MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener, MediaPlayer.OnErrorListener, MediaPlayer.OnBufferingUpdateListener{
 
     public static final String SERVICE_RESULT = "com.udacity.professorpanic.spotifystreamer.MusicPlayerService.REQUEST_PROCESSED";
-
+    public static final int NOTIFICATION_ID = 101;
     public static final String SONG_POSITION = "com.udacity.professorpanic.spotifystreamer.MusicPlayerService.SONG_POSITION";
     public static final String SONG_DURATION = "com.udacity.professorpanic.spotifystreamer.MusicPlayerService.SONG_DURATION";
     public static final String SERVICE_IS_PLAYING = "com.udacity.professorpanic.spotifystreamer.MusicPlayerService.SERVICE_IS_PLAYING";
@@ -37,6 +39,7 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
     private static final String CHOSEN_TRACK = "Chosen Track";
     private static final String TAG = "MusicPlayerService";
     private static final String ARTIST_ID = "Spotify artist ID";
+    private static final String ARTIST_NAME = "Artist Name";
     private static final String TRACK_URI = "track URI";
     private String artistId;
     private final PlayerBinder playerBinder = new PlayerBinder();
@@ -254,6 +257,20 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
     @Override
     public IBinder onBind(Intent intent) {
         args = intent.getExtras();
+        String nowPlayingArtist = args.getString(MediaPlayerFragment.PASSED_ARTIST_NAME);
+        String nowPlayingSong = args.getString(MediaPlayerFragment.SONG_TITLE);
+
+        // assign the song name to songName
+        Intent notificationIntent = new Intent(getApplicationContext(), ArtistsMainActivity.class);
+        notificationIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        PendingIntent pi = PendingIntent.getActivity(getApplicationContext(), 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        Notification notification = new Notification();
+        notification.tickerText = nowPlayingArtist;
+        notification.icon = R.drawable.ic_action_play_arrow;
+        notification.flags |= Notification.FLAG_ONGOING_EVENT;
+        notification.setLatestEventInfo(getApplicationContext(), getResources().getString(R.string.app_name),
+                "Playing: " + nowPlayingSong + ", By: " + nowPlayingArtist, pi);
+        startForeground(NOTIFICATION_ID, notification);
         initMediaPlayer();
         return playerBinder;
     }

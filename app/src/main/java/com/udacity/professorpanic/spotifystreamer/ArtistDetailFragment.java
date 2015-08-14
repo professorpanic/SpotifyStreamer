@@ -40,6 +40,7 @@ public static final String CHOSEN_TRACK = "Chosen Track";
 public static final String PASSED_ARTIST_NAME = "Artist Name";
 public static final String ARTIST_ID = "Spotify Artist ID";
 
+
 private ArtistDetailAdapter mAdapter;
 
     public interface Callbacks
@@ -86,6 +87,7 @@ private ArtistDetailAdapter mAdapter;
         args.putInt(CHOSEN_TRACK, position);
         args.putString(PASSED_ARTIST_NAME, artistName);
         args.putString(ARTIST_ID, artistString);
+
         mediaPlayerFragment.setArguments(args);
 
         mCallbacks.onArtistSelected(mediaPlayerFragment);
@@ -138,6 +140,7 @@ private ArtistDetailAdapter mAdapter;
             //spotifyOptions.put(SpotifyService.COUNTRY, Locale.getDefault().getCountry());
             artistTopTracks =spotifyService.getArtistTopTrack(artistId, Locale.getDefault().getCountry());
             artistName = spotifyService.getArtist(artistId).name;
+
 
 
 
