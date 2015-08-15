@@ -9,4 +9,5 @@
     <string name="top_ten_tracks">Top Ten Tracks</string>
     <string name="no_network_error">No network connection available, please try again later</string>
     <string name="no_songs_found">No tracks for this artist are available</string>
+    <string name="now_playing">Now Playing:</string>
 </resources>

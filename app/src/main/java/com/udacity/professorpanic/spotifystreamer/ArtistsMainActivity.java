@@ -28,6 +28,8 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
     private static final String TAG="Main Activity";
     private BroadcastReceiver receiver;
 
+
+
     @Override
     public void onTopTracksSelected(Bundle args)
     {
