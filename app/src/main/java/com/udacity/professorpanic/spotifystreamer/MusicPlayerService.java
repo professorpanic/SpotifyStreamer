@@ -2,6 +2,7 @@ package com.udacity.professorpanic.spotifystreamer;
 
 import android.app.Activity;
 import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
@@ -18,7 +19,11 @@ import android.os.PowerManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.NotificationCompat;
 import android.util.Log;
+import android.widget.ImageView;
 import android.widget.RemoteViews;
+import android.widget.TextView;
+
+import com.squareup.picasso.Picasso;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -44,7 +49,7 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
     private static final String ARTIST_ID = "Spotify artist ID";
     private static final String ARTIST_NAME = "Artist Name";
     private static final String TRACK_URI = "track URI";
-
+    NotificationCompat.Builder mBuilder;
     private MediaPlayer mPlayer;
     private ArrayList<Track> topTracks;
     private Uri trackUri;
@@ -57,6 +62,12 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
     private LocalBroadcastManager broadcaster;
     private Thread seekbarUpdaterThread;
     private RemoteViews mRemoteView;
+    Notification mNotification;
+    private ImageView mNotificationAlbumCover;
+    private String nowPlayingArtist;
+    private String nowPlayingSong;
+    private TextView mNotificationArtist;
+    private TextView mNotificationSong;
 
     //from here to notifyUpdate is code specfically for updating the seekbar and the Playing boolean,
     // since relying on an IsPlaying value from the service bombs if it isn't connected yet.
@@ -166,6 +177,38 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
         super.onDestroy();
     }
 
+    private void updateNotificationInfo(String artist, String song)
+    {
+        if (mRemoteView != null)
+        {
+
+            Log.i(TAG, "In updateNotification Info with artist " + artist + " and " + song);
+            mRemoteView.setTextViewText(R.id.notification_name, artist);
+            mRemoteView.setTextViewText(R.id.notification_song, song);
+            NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            try
+            {
+                Track track = topTracks.get(chosenTrack);
+                Picasso.with(getApplicationContext()).load(track.album.images.get(1).url).into(mRemoteView,R.id.notification_album_img,NOTIFICATION_ID, mNotification);
+                //mRemoteView.setImageViewResource(R.id.notification_album_img, mNotificationAlbumCover.getId());
+            }
+            catch (Exception ex)
+            {
+                ex.printStackTrace();
+            }
+            manager.notify(NOTIFICATION_ID, mBuilder.build());
+
+
+//            AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(getApplicationContext());
+//            ComponentName tempComponentName= new ComponentName(getApplicationContext(), MusicPlayerService.class);
+//            ComponentName thisAppWidget = new ComponentName(context.getPackageName(), MyWidgetProvider.class.getName());
+//            int[] appWidgetIds = appWidgetManager.getAppWidgetIds(tempComponentName);
+//            appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetIds,  R.id.custom_notification_layout);
+//            AppWidgetManager.getInstance(getApplicationContext()).updateAppWidget(tempComponentName, mRemoteView);
+//            appWidgetManager.partiallyUpdateAppWidget(mRemoteView.getLayoutId(), mRemoteView);
+        }
+    }
+
     public void initMediaPlayer()
     {
         //method to make it easy for all the boilerplate stuff for using the mediaplayer
@@ -221,6 +264,8 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
         }
         mPlayer.prepareAsync();
         mCallbacks.onTrackChangedByService(chosenTrack);
+        generateForegroundNotification();
+        //updateNotificationInfo(args.getString(ARTIST_NAME), topTracks.get(chosenTrack).name);
 
     }
 
@@ -258,7 +303,8 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
         }
         mPlayer.prepareAsync();
         mCallbacks.onTrackChangedByService(chosenTrack);
-
+        //updateNotificationInfo(args.getString(ARTIST_NAME), topTracks.get(chosenTrack).name);
+        generateForegroundNotification();
 
     }
 
@@ -275,15 +321,16 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
     @Override
     public IBinder onBind(Intent intent) {
         args = intent.getExtras();
-        generateForegroundNotification();
         initMediaPlayer();
+        generateForegroundNotification();
         return playerBinder;
     }
 
     private void generateForegroundNotification() {
 
-        String nowPlayingArtist = args.getString(MediaPlayerFragment.PASSED_ARTIST_NAME);
-        String nowPlayingSong = args.getString(MediaPlayerFragment.SONG_TITLE);
+        nowPlayingArtist = args.getString(MediaPlayerFragment.PASSED_ARTIST_NAME);
+        nowPlayingSong = topTracks.get(chosenTrack).name;
+
         if (mRemoteView == null)
         {
             mRemoteView = new RemoteViews(getPackageName(), R.layout.notification_layout_bar);
@@ -296,31 +343,16 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
         notificationIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         PendingIntent pi = PendingIntent.getActivity(getApplicationContext(), 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
+        setNotificationListeners(mRemoteView);
+        mRemoteView.setTextViewText(R.id.notification_name, nowPlayingArtist);
+        mRemoteView.setTextViewText(R.id.notification_song, nowPlayingSong);
+        //updateNotificationInfo(args.getString(ARTIST_NAME), topTracks.get(chosenTrack).name);
 
 
-        Intent prevIntent = new Intent(getApplicationContext(), MusicPlayerService.class);
-        prevIntent.setAction(ACTION_PREV);
-        PendingIntent prevPendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 100, prevIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        mRemoteView.setOnClickPendingIntent(R.id.notification_prev, prevPendingIntent);
 
-        Intent nextIntent = new Intent(getApplicationContext(), MusicPlayerService.class);
-        nextIntent.setAction(ACTION_NEXT);
-        PendingIntent nextPendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 200, nextIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        mRemoteView.setOnClickPendingIntent(R.id.notification_next, nextPendingIntent);
 
-        Intent pauseOrPlayIntent = new Intent(getApplicationContext(), MusicPlayerService.class);
-        pauseOrPlayIntent.setAction(ACTION_PLAY_OR_PAUSE);
-        PendingIntent pauseOrPlayPendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 300, pauseOrPlayIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        mRemoteView.setOnClickPendingIntent(R.id.notification_pause_play, pauseOrPlayPendingIntent);
 
-        Intent stopIntent = new Intent(getApplicationContext(), MusicPlayerService.class);
-        stopIntent.setAction(ACTION_STOP);
-        PendingIntent stopPendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 400, stopIntent, PendingIntent.FLAG_UPDATE_CURRENT);
-        mRemoteView.setOnClickPendingIntent(R.id.notification_stop, stopPendingIntent);
-        //setNotificationListeners(mRemoteView);
-        //mRemoteView.setTextViewText(R.id.notification_name, nowPlayingArtist);
-        //mRemoteView.setTextViewText(R.id.notification_song, nowPlayingSong);
-        NotificationCompat.Builder builder = (NotificationCompat.Builder) new NotificationCompat.Builder(this)
+         mBuilder = (NotificationCompat.Builder) new NotificationCompat.Builder(this)
                 // Set Icon
                 .setSmallIcon(R.drawable.ic_music_note)
                         // Set Ticker Message
@@ -329,45 +361,47 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
                 .setAutoCancel(true)
                         // Set PendingIntent into Notification
                 .setContentIntent(pi)
-                        // Set RemoteViews into Notification
+                 //set style so buttons aren't cut off
+                 //.setStyle(new NotificationCompat.BigTextStyle().bigText(getResources().getString(R.string.app_name)))
+                 // Set RemoteViews into Notification
                 .setContent(mRemoteView);
 
-        Notification notification = builder.build();
-        notification.flags = Notification.FLAG_ONGOING_EVENT;
-        startForeground(NOTIFICATION_ID, notification);
-//        // Create Notification Manager
-//        NotificationManager notificationmanager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-//        // Build Notification with Notification Manager
-//        notificationmanager.notify(0, builder.build());
-//
-//
-//        NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
-//        builder.setContent(mRemoteView);
-//        builder.setContentIntent(pi);
-//        builder.setStyle(new NotificationCompat.MediaStyle());
-//        builder.setContentTitle(nowPlayingSong);
-//        builder.setContentText(nowPlayingArtist);
-//        builder.setSmallIcon(R.drawable.ic_action_play_arrow);
-//        builder.addAction(R.drawable.ic_action_skip_previous, "Previous", prevPendingIntent);
-//        builder.addAction(R.drawable.ic_action_pause, "Pause", pauseOrPlayPendingIntent);
-//        builder.addAction(R.drawable.ic_action_stop, "Stop", stopPendingIntent);
-//        builder.addAction(R.drawable.ic_action_skip_next, "Next", nextPendingIntent);
-//
-//        Notification notification = builder.build();
-//        notification.flags = Notification.FLAG_ONGOING_EVENT;
-//
-//
-//        notification.contentView = mRemoteView;
-//
-//
-//        startForeground(NOTIFICATION_ID, notification);
+
+
+        Notification mNotification = mBuilder.build();
+        try
+        {
+            Track track = topTracks.get(chosenTrack);
+            Picasso.with(getApplicationContext()).load(track.album.images.get(1).url).into(mRemoteView,R.id.notification_album_img,NOTIFICATION_ID, mNotification);
+            //mRemoteView.setImageViewResource(R.id.notification_album_img, mNotificationAlbumCover.getId());
+        }
+        catch (Exception ex)
+        {
+            ex.printStackTrace();
+        }
+        mNotification.flags = Notification.FLAG_ONGOING_EVENT;
+        startForeground(NOTIFICATION_ID, mNotification);
 
 
     }
 
     private void setNotificationListeners(RemoteViews mRemoteView)
     {
+        Intent prevIntent = new Intent(ACTION_PREV);
+        PendingIntent prevPendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 100, prevIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        mRemoteView.setOnClickPendingIntent(R.id.notification_prev, prevPendingIntent);
 
+        Intent nextIntent = new Intent(ACTION_NEXT);
+        PendingIntent nextPendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 200, nextIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        mRemoteView.setOnClickPendingIntent(R.id.notification_next, nextPendingIntent);
+
+        Intent pauseOrPlayIntent = new Intent(ACTION_PLAY_OR_PAUSE);
+        PendingIntent pauseOrPlayPendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 300, pauseOrPlayIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        mRemoteView.setOnClickPendingIntent(R.id.notification_pause_play, pauseOrPlayPendingIntent);
+
+        Intent stopIntent = new Intent(ACTION_STOP);
+        PendingIntent stopPendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 400, stopIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+        mRemoteView.setOnClickPendingIntent(R.id.notification_stop, stopPendingIntent);
 
 
     }
