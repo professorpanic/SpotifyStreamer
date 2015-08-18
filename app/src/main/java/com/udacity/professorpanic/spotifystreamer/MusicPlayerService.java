@@ -2,7 +2,6 @@ package com.udacity.professorpanic.spotifystreamer;
 
 import android.app.Activity;
 import android.app.Notification;
-import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
@@ -159,6 +158,8 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
         return topTracks.get(chosenTrack).uri;
     }
 
+    public String getCurrentPlayingURL() {return  topTracks.get(chosenTrack).preview_url;}
+
     public void onCreate()
     {
         Log.i(TAG, "onCreate");
@@ -177,37 +178,7 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
         super.onDestroy();
     }
 
-    private void updateNotificationInfo(String artist, String song)
-    {
-        if (mRemoteView != null)
-        {
 
-            Log.i(TAG, "In updateNotification Info with artist " + artist + " and " + song);
-            mRemoteView.setTextViewText(R.id.notification_name, artist);
-            mRemoteView.setTextViewText(R.id.notification_song, song);
-            NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-            try
-            {
-                Track track = topTracks.get(chosenTrack);
-                Picasso.with(getApplicationContext()).load(track.album.images.get(1).url).into(mRemoteView,R.id.notification_album_img,NOTIFICATION_ID, mNotification);
-                //mRemoteView.setImageViewResource(R.id.notification_album_img, mNotificationAlbumCover.getId());
-            }
-            catch (Exception ex)
-            {
-                ex.printStackTrace();
-            }
-            manager.notify(NOTIFICATION_ID, mBuilder.build());
-
-
-//            AppWidgetManager appWidgetManager = AppWidgetManager.getInstance(getApplicationContext());
-//            ComponentName tempComponentName= new ComponentName(getApplicationContext(), MusicPlayerService.class);
-//            ComponentName thisAppWidget = new ComponentName(context.getPackageName(), MyWidgetProvider.class.getName());
-//            int[] appWidgetIds = appWidgetManager.getAppWidgetIds(tempComponentName);
-//            appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetIds,  R.id.custom_notification_layout);
-//            AppWidgetManager.getInstance(getApplicationContext()).updateAppWidget(tempComponentName, mRemoteView);
-//            appWidgetManager.partiallyUpdateAppWidget(mRemoteView.getLayoutId(), mRemoteView);
-        }
-    }
 
     public void initMediaPlayer()
     {
@@ -353,6 +324,8 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
 
 
          mBuilder = (NotificationCompat.Builder) new NotificationCompat.Builder(this)
+                 //set notification to show in locked mode
+                 .setVisibility(Notification.VISIBILITY_PUBLIC)
                 // Set Icon
                 .setSmallIcon(R.drawable.ic_music_note)
                         // Set Ticker Message

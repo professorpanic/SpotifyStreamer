@@ -29,17 +29,7 @@
             android:enabled="true"
             android:exported="false" >
         </service>
-        <!--<receiver-->
-            <!--android:name="com.udacity.professorpanic.spotifystreamer.MusicPlayerService$-->
-            <!--android:enabled="true">-->
-            <!--<intent-filter>-->
-                <!--<action android:name="com.udacity.professorpanic.spotifystreamer.MusicPlayerService.action_play_or_pause" />-->
-                <!--<action android:name="com.udacity.professorpanic.spotifystreamer.MusicPlayerService.action_stop" />-->
-                <!--<action android:name="com.udacity.professorpanic.spotifystreamer.MusicPlayerService.action_prev" />-->
-                <!--<action android:name="com.udacity.professorpanic.spotifystreamer.MusicPlayerService.action_next" />-->
-            <!--</intent-filter>-->
 
-        <!--</receiver>-->
 
 
     </application>

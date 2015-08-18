@@ -7,11 +7,14 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.support.v4.view.MenuItemCompat;
 import android.support.v7.app.ActionBarActivity;
+import android.support.v7.widget.ShareActionProvider;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.SeekBar;
+import android.widget.Toast;
 
 import com.udacity.professorpanic.spotifystreamer.MusicPlayerService.PlayerBinder;
 
@@ -27,6 +30,9 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
     private Bundle topTracksBundle;
     private static final String TAG="Main Activity";
     private BroadcastReceiver receiver;
+    private ShareActionProvider mShareActionProvider;
+    private Intent mShareIntent;
+    public static final String CURRENT_TRACK_TO_SHARE = "com.udacity.professorpanic.spotifystreamer.ArtistsMainActivity.CURRENT_TRACK_TO_SHARE";
 
 
 
@@ -75,6 +81,8 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
             musicPlayerService = binder.getService();
             //pass list
             musicBound = true;
+            mShareIntent = new Intent();
+            mShareIntent.putExtra(CURRENT_TRACK_TO_SHARE, getMusicPlayerService().getCurrentPlayingTrack());
             //setting up so the service can send callbacks to the activity, for manipulating a fragment
             musicPlayerService.registerCallbackClient(ArtistsMainActivity.this);
         }
@@ -91,6 +99,7 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(getLayoutResId());
+
 
         // checking to be sure that the fragment container has a fragment in it.
         if (findViewById(R.id.fragment_container) != null)
@@ -112,7 +121,38 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_artists_main, menu);
+
+        MenuItem item = menu.findItem(R.id.menu_item_share);
+
+
+
+
+        mShareActionProvider =  (ShareActionProvider) MenuItemCompat.getActionProvider(item);
+
+        if (mShareActionProvider != null)
+        {
+            mShareActionProvider.setShareIntent(createTrackShareIntent());
+        }
+
+
+
         return true;
+    }
+
+    private Intent createTrackShareIntent()
+    {
+
+            Intent shareIntent = new Intent(Intent.ACTION_SEND);
+            //this is important! stops the activity that's being shared to from being left on the stack
+            shareIntent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            shareIntent.setType("text/plain");
+            if (musicPlayerService != null && musicPlayerService.getCurrentPlayingTrack() != null)
+            {
+                shareIntent.putExtra(Intent.EXTRA_TEXT, "Listen to this! : " + musicPlayerService.getCurrentPlayingURL());
+            }
+
+            return shareIntent;
+
     }
 
     protected int getLayoutResId()
@@ -125,14 +165,34 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
+        //int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
+        switch(item.getItemId()) {
+            case R.id.action_settings:
+                return true;
+
+
+            case R.id.menu_item_share:
+                //check if the service is bound. If it is, there's a track either playing or paused.
+                if (mShareActionProvider != null && getMusicPlayerService() != null) {
+
+
+                        mShareActionProvider.setShareIntent(createTrackShareIntent());
+                        //startActivity(Intent.createChooser(createTrackShareIntent(), "Listen to this!"));
+
+                }
+                //if not, then there's nothing to share and a toast will inform the user of that.
+                else
+                {
+                    Toast.makeText(getApplicationContext(), getString(R.string.nothing_to_share), Toast.LENGTH_SHORT).show();
+                }
+                return true;
+
+            default: return super.onOptionsItemSelected(item);
         }
 
-        return super.onOptionsItemSelected(item);
+
     }
 
     //logic for uis depending on if it's a tablet or a phone
@@ -206,6 +266,12 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
     public void onTrackChangedByService(int newTrack)
     {
         MediaPlayerFragment fragment =  (MediaPlayerFragment)getFragmentManager().findFragmentByTag(MediaPlayerFragment.TAG);
+
+
+        if (mShareActionProvider != null)
+        {
+            mShareActionProvider.setShareIntent(createTrackShareIntent());
+        }
         //this callback will update the dialog fragment if it exists and is visible, so the player info changes when the service moves to a new track.
         if (fragment != null)
         {

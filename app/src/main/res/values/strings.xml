@@ -10,4 +10,6 @@
     <string name="no_network_error">No network connection available, please try again later</string>
     <string name="no_songs_found">No tracks for this artist are available</string>
     <string name="now_playing">Now Playing:</string>
+    <string name="share_track">Share</string>
+    <string name="nothing_to_share">No tracks playing to share</string>
 </resources>
