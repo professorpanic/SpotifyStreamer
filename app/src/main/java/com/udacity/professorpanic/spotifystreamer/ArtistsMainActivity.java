@@ -170,9 +170,10 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
         //noinspection SimplifiableIfStatement
         switch(item.getItemId()) {
             case R.id.action_settings:
-                return true;
 
-
+                    Intent settingsIntent = new Intent(this,SettingsActivity.class);
+                    startActivity(settingsIntent);
+                    return true;
             case R.id.menu_item_share:
                 //check if the service is bound. If it is, there's a track either playing or paused.
                 if (mShareActionProvider != null && getMusicPlayerService() != null) {
@@ -188,6 +189,8 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
                     Toast.makeText(getApplicationContext(), getString(R.string.nothing_to_share), Toast.LENGTH_SHORT).show();
                 }
                 return true;
+
+
 
             default: return super.onOptionsItemSelected(item);
         }

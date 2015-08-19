@@ -208,7 +208,7 @@ public class MediaPlayerFragment extends DialogFragment {
             artistNameTextView.setText(artistName);
             trackNameTextView.setText(topTracks.get(trackNumber).name);
             Picasso.with(getActivity()).load(topTracks.get(trackNumber).album.images.get(0).url).into(trackImageView);
-            //seekBar.setMax((int)(topTracks.get(trackNumber).duration_ms) / 1000);
+
 
 
 

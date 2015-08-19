@@ -12,4 +12,9 @@
     <string name="now_playing">Now Playing:</string>
     <string name="share_track">Share</string>
     <string name="nothing_to_share">No tracks playing to share</string>
+    <string name="pref_country_code_key" translatable="false">country code</string>
+    <string name="pref_county_code_label">Country</string>
+    <string name="default_country_key">US</string>
+    <string name="enable_player_lock">Enable Lock Screen Player</string>
+    <string name="enable_player_summary">Display the music controls on the lock screen</string>
 </resources>

@@ -1,8 +1,10 @@
 package com.udacity.professorpanic.spotifystreamer;
 
 import android.app.Activity;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.app.ListFragment;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -12,9 +14,7 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 
 import kaaes.spotify.webapi.android.SpotifyApi;
 import kaaes.spotify.webapi.android.SpotifyService;
@@ -27,7 +27,7 @@ import kaaes.spotify.webapi.android.models.Tracks;
  */
 public class ArtistDetailFragment extends ListFragment {
 
-private Artist mArtist;
+
 private String artistString;
 private String artistName;
 private SpotifyApi api;
@@ -74,10 +74,7 @@ private ArtistDetailAdapter mAdapter;
 
     }
 
-    public interface OnTopTracksSelectedListener
-    {
-        void onTopTracksSelected(Bundle args);
-    }
+
 
     @Override
     public void onListItemClick(ListView l, View v, int position, long id) {
@@ -91,11 +88,7 @@ private ArtistDetailAdapter mAdapter;
         mediaPlayerFragment.setArguments(args);
 
         mCallbacks.onArtistSelected(mediaPlayerFragment);
-//        getActivity().getSupportFragmentManager().beginTransaction()
-//                .replace(R.id.detail_fragment_container, mediaPlayerFragment)
-//                .addToBackStack(null)
-//                .commit();
-        Log.i(TAG, "SONG CLICKY CLICKY BOOM BOOM NOOOWWW");
+
     }
 
 
@@ -136,9 +129,18 @@ private ArtistDetailAdapter mAdapter;
         @Override
         protected Void doInBackground(String... params) {
             String artistId = params[0];
-            Map<String, Object> spotifyOptions = new HashMap<String, Object>();
-            //spotifyOptions.put(SpotifyService.COUNTRY, Locale.getDefault().getCountry());
-            artistTopTracks =spotifyService.getArtistTopTrack(artistId, Locale.getDefault().getCountry());
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+
+            String country = prefs.getString(getString(R.string.pref_country_code_key), getString(R.string.default_country_key));
+            try {
+                artistTopTracks = spotifyService.getArtistTopTrack(artistId, country);
+            }
+            catch (Exception ex)
+            {
+                //putting this in here in case the country code is invalid, I'll just have it default to murrica.
+                artistTopTracks = spotifyService.getArtistTopTrack(artistId, "US");
+            }
+            Log.i(TAG, "" + Locale.getDefault().getCountry());
             artistName = spotifyService.getArtist(artistId).name;
 
 

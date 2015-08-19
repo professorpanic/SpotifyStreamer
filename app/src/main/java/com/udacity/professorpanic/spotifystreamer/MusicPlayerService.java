@@ -8,6 +8,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
@@ -15,6 +16,7 @@ import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PowerManager;
+import android.preference.PreferenceManager;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.NotificationCompat;
 import android.util.Log;
@@ -37,7 +39,6 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
     public static final String SONG_POSITION = "com.udacity.professorpanic.spotifystreamer.MusicPlayerService.SONG_POSITION";
     public static final String SONG_DURATION = "com.udacity.professorpanic.spotifystreamer.MusicPlayerService.SONG_DURATION";
     public static final String SERVICE_IS_PLAYING = "com.udacity.professorpanic.spotifystreamer.MusicPlayerService.SERVICE_IS_PLAYING";
-    public static String START_FOREGROUND = "com.udacity.professorpanic.spotifystreamer.MusicPlayerService.startforeground";
     public static final String ACTION_PLAY_OR_PAUSE = "com.com.udacity.professorpanic.spotifystreamer.MusicPlayerService.action_play_or_pause";
     public static final String ACTION_STOP = "com.com.udacity.professorpanic.spotifystreamer.MusicPlayerService.action_stop";
     public static final String ACTION_NEXT = "com.com.udacity.professorpanic.spotifystreamer.MusicPlayerService.action_next";
@@ -46,8 +47,6 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
     private static final String CHOSEN_TRACK = "Chosen Track";
     private static final String TAG = "MusicPlayerService";
     private static final String ARTIST_ID = "Spotify artist ID";
-    private static final String ARTIST_NAME = "Artist Name";
-    private static final String TRACK_URI = "track URI";
     NotificationCompat.Builder mBuilder;
     private MediaPlayer mPlayer;
     private ArrayList<Track> topTracks;
@@ -236,7 +235,6 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
         mPlayer.prepareAsync();
         mCallbacks.onTrackChangedByService(chosenTrack);
         generateForegroundNotification();
-        //updateNotificationInfo(args.getString(ARTIST_NAME), topTracks.get(chosenTrack).name);
 
     }
 
@@ -274,7 +272,6 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
         }
         mPlayer.prepareAsync();
         mCallbacks.onTrackChangedByService(chosenTrack);
-        //updateNotificationInfo(args.getString(ARTIST_NAME), topTracks.get(chosenTrack).name);
         generateForegroundNotification();
 
     }
@@ -317,15 +314,26 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
         setNotificationListeners(mRemoteView);
         mRemoteView.setTextViewText(R.id.notification_name, nowPlayingArtist);
         mRemoteView.setTextViewText(R.id.notification_song, nowPlayingSong);
-        //updateNotificationInfo(args.getString(ARTIST_NAME), topTracks.get(chosenTrack).name);
 
 
+        int lockScreen;
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
 
+        boolean lockPlayerOn = prefs.getBoolean("player_lock", false);
+        if (lockPlayerOn)
+        {
+            lockScreen = Notification.VISIBILITY_PUBLIC;
+        }
+        else
+        {
+            lockScreen = Notification.VISIBILITY_SECRET;
+        }
 
 
          mBuilder = (NotificationCompat.Builder) new NotificationCompat.Builder(this)
-                 //set notification to show in locked mode
-                 .setVisibility(Notification.VISIBILITY_PUBLIC)
+                 //this notification will flip according to whether or not the user has the Display on Lock setting checked.
+                 //this will not work if they don't actually have a secured lock screen.
+                 .setVisibility(lockScreen)
                 // Set Icon
                 .setSmallIcon(R.drawable.ic_music_note)
                         // Set Ticker Message
@@ -346,7 +354,7 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
         {
             Track track = topTracks.get(chosenTrack);
             Picasso.with(getApplicationContext()).load(track.album.images.get(1).url).into(mRemoteView,R.id.notification_album_img,NOTIFICATION_ID, mNotification);
-            //mRemoteView.setImageViewResource(R.id.notification_album_img, mNotificationAlbumCover.getId());
+
         }
         catch (Exception ex)
         {
@@ -360,6 +368,7 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
 
     private void setNotificationListeners(RemoteViews mRemoteView)
     {
+        //pass a remoteview and it'll attach the PendingIntents for each of the notification's buttons.
         Intent prevIntent = new Intent(ACTION_PREV);
         PendingIntent prevPendingIntent = PendingIntent.getBroadcast(getApplicationContext(), 100, prevIntent, PendingIntent.FLAG_UPDATE_CURRENT);
         mRemoteView.setOnClickPendingIntent(R.id.notification_prev, prevPendingIntent);
@@ -421,7 +430,7 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
         {
 
             String action = intent.getAction();
-            Log.i(TAG, "WOOOO RECEIVING A BROADCAST OR SOMETHING");
+            Log.i(TAG, "Broadcast Received");
 
             if(action.equals(ACTION_PLAY_OR_PAUSE))
             {
