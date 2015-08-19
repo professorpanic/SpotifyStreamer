@@ -31,7 +31,7 @@ import java.util.ArrayList;
 
 import kaaes.spotify.webapi.android.models.Track;
 
-public class MusicPlayerService extends Service implements MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener, MediaPlayer.OnErrorListener, MediaPlayer.OnBufferingUpdateListener{
+public class MusicPlayerService extends Service implements SharedPreferences.OnSharedPreferenceChangeListener, MediaPlayer.OnPreparedListener, MediaPlayer.OnCompletionListener, MediaPlayer.OnErrorListener, MediaPlayer.OnBufferingUpdateListener{
 
     public static final String SERVICE_RESULT = "com.udacity.professorpanic.spotifystreamer.MusicPlayerService.REQUEST_PROCESSED";
     public static final int NOTIFICATION_ID = 101;
@@ -95,7 +95,7 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
                     }
                 }
 
-            }
+        }
         });
         seekbarUpdaterThread.start();
     }
@@ -115,6 +115,13 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
                 }
             }
         }
+    }
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+
+        //this should be all that's needed since the method below will check preferences anyways, and also do any other updating the notification we might need.
+        generateForegroundNotification();
     }
 
 
@@ -169,6 +176,8 @@ public class MusicPlayerService extends Service implements MediaPlayer.OnPrepare
         this.registerReceiver(MusicPlayerServiceBroadcastReceiver, new IntentFilter(ACTION_STOP));
         this.registerReceiver(MusicPlayerServiceBroadcastReceiver, new IntentFilter(ACTION_NEXT));
         this.registerReceiver(MusicPlayerServiceBroadcastReceiver, new IntentFilter(ACTION_PREV));
+        SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(this);
+        pref.registerOnSharedPreferenceChangeListener(this);
     }
 
     @Override
