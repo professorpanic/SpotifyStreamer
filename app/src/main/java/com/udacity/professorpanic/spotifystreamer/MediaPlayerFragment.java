@@ -161,7 +161,7 @@ public class MediaPlayerFragment extends DialogFragment {
         args = this.getArguments();
         topTracks = (ArrayList<Track>)args.get(TRACK_LIST);
         artistName = args.getString(PASSED_ARTIST_NAME);
-        artistId = args.getString(ARTIST_ID);
+        //artistId = args.getString(ARTIST_ID);
         chosenTrack = args.getInt(CHOSEN_TRACK);
 
 
@@ -226,7 +226,7 @@ public class MediaPlayerFragment extends DialogFragment {
 
             Log.i(TAG, "in the onCreateView try");
             Bundle intentArgs = new Bundle();
-            intentArgs.putString(ARTIST_ID, artistId);
+            //intentArgs.putString(ARTIST_ID, artistId);
             intentArgs.putInt(CHOSEN_TRACK, chosenTrack);
             intentArgs.putParcelableArrayList(TRACK_LIST, topTracks);
             intentArgs.putString(PASSED_ARTIST_NAME, artistName);

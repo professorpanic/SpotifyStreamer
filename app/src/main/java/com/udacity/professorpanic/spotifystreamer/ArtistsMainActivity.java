@@ -64,6 +64,17 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
                 getApplicationContext().bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE);
     }
 
+    @Override
+    protected void onNewIntent(Intent intent) {
+        Log.i(TAG, "ONRESUME AND STUFF");
+        Log.i(TAG, getIntent().getAction());
+        if (intent.getAction().equals(MusicPlayerService.ACTION_NOW_PLAYING))
+        {
+            Log.i(TAG, "ACTION NOW PLAYING AND STUFF");
+            showNowPlaying();
+        }
+    }
+
     public MusicPlayerService getMusicPlayerService() {
         return musicPlayerService;
     }
@@ -122,7 +133,7 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_artists_main, menu);
 
-        MenuItem item = menu.findItem(R.id.menu_item_share);
+        MenuItem item = menu.findItem(R.id.action_share);
 
 
 
@@ -174,7 +185,7 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
                     Intent settingsIntent = new Intent(this,SettingsActivity.class);
                     startActivity(settingsIntent);
                     return true;
-            case R.id.menu_item_share:
+            case R.id.action_share:
                 //check if the service is bound. If it is, there's a track either playing or paused.
                 if (mShareActionProvider != null && getMusicPlayerService() != null) {
 
@@ -283,6 +294,21 @@ public class ArtistsMainActivity extends ActionBarActivity implements  ArtistsMa
                 fragment.updateUi(newTrack);
             }
         }
+
+    }
+
+    public void showNowPlaying()
+    {
+        MediaPlayerFragment mediaPlayerFragment = new MediaPlayerFragment();
+        Bundle args = new Bundle();
+        args.putParcelableArrayList(MusicPlayerService.TRACK_LIST, getMusicPlayerService().getTopTracks());
+        args.putInt(ArtistDetailFragment.CHOSEN_TRACK, getMusicPlayerService().getChosenTrack());
+        args.putString(ArtistDetailFragment.PASSED_ARTIST_NAME, getMusicPlayerService().getNowPlayingArtist());
+
+
+        mediaPlayerFragment.setArguments(args);
+
+        onArtistSelected(mediaPlayerFragment);
     }
 
 

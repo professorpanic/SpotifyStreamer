@@ -43,10 +43,11 @@ public class MusicPlayerService extends Service implements SharedPreferences.OnS
     public static final String ACTION_STOP = "com.com.udacity.professorpanic.spotifystreamer.MusicPlayerService.action_stop";
     public static final String ACTION_NEXT = "com.com.udacity.professorpanic.spotifystreamer.MusicPlayerService.action_next";
     public static final String ACTION_PREV = "com.com.udacity.professorpanic.spotifystreamer.MusicPlayerService.action_prev";
-    private static final String TRACK_LIST = "Artist Top Ten Tracks";
-    private static final String CHOSEN_TRACK = "Chosen Track";
-    private static final String TAG = "MusicPlayerService";
-    private static final String ARTIST_ID = "Spotify artist ID";
+    public static final String ACTION_NOW_PLAYING = "com.com.udacity.professorpanic.spotifystreamer.MusicPlayerService.action_now_playing";
+    public static final String TRACK_LIST = "Artist Top Ten Tracks";
+    public static final String CHOSEN_TRACK = "Chosen Track";
+    public static final String TAG = "MusicPlayerService";
+    public static final String ARTIST_ID = "Spotify artist ID";
     NotificationCompat.Builder mBuilder;
     private MediaPlayer mPlayer;
     private ArrayList<Track> topTracks;
@@ -166,6 +167,15 @@ public class MusicPlayerService extends Service implements SharedPreferences.OnS
 
     public String getCurrentPlayingURL() {return  topTracks.get(chosenTrack).preview_url;}
 
+    public ArrayList<Track> getTopTracks() {
+        return topTracks;
+    }
+
+    public int getChosenTrack() {return chosenTrack;}
+
+    public String getNowPlayingArtist() { return nowPlayingArtist;}
+    public String getNowPlayingSong() {return nowPlayingSong;}
+
     public void onCreate()
     {
         Log.i(TAG, "onCreate");
@@ -202,7 +212,7 @@ public class MusicPlayerService extends Service implements SharedPreferences.OnS
 
         topTracks =  args.getParcelableArrayList(TRACK_LIST);
         chosenTrack = args.getInt(CHOSEN_TRACK);
-        artistId = args.getString(ARTIST_ID);
+        //artistId = args.getString(ARTIST_ID);
         trackUri = Uri.parse(topTracks.get(chosenTrack).preview_url);
 
         try
@@ -314,6 +324,7 @@ public class MusicPlayerService extends Service implements SharedPreferences.OnS
         }
 
         Intent notificationIntent = new Intent(getApplicationContext(), ArtistsMainActivity.class);
+        notificationIntent.setAction(ACTION_NOW_PLAYING);
         notificationIntent.putExtra("nowPlayingArtist", nowPlayingArtist);
         notificationIntent.putExtra("nowPlayingSong", nowPlayingSong);
 
@@ -352,7 +363,6 @@ public class MusicPlayerService extends Service implements SharedPreferences.OnS
                         // Set PendingIntent into Notification
                 .setContentIntent(pi)
                  //set style so buttons aren't cut off
-                 //.setStyle(new NotificationCompat.BigTextStyle().bigText(getResources().getString(R.string.app_name)))
                  // Set RemoteViews into Notification
                 .setContent(mRemoteView);
 
@@ -370,6 +380,7 @@ public class MusicPlayerService extends Service implements SharedPreferences.OnS
             ex.printStackTrace();
         }
         mNotification.flags = Notification.FLAG_ONGOING_EVENT;
+
         startForeground(NOTIFICATION_ID, mNotification);
 
 
